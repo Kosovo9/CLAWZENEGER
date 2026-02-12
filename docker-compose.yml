@@ -1,0 +1,52 @@
+name: nexobot
+services:
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: nexobot-ollama
+  #   restart: unless-stopped
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ./data/ollama:/root/.ollama
+  #   networks:
+  #     - nexobot-network
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: nexobot-openwebui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://openwebui:8080
+    volumes:
+      - ./data/openwebui:/app/backend/data
+      - ./knowledge_base:/app/backend/data/docs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - nexobot-network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: nexobot-n8n
+    restart: unless-stopped
+    profiles: ["automation"]
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    networks:
+      - nexobot-network
+
+networks:
+  nexobot-network:
+    driver: bridge

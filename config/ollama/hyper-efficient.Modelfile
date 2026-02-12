@@ -1,0 +1,14 @@
+# Hereda del modelo más ligero que tenemos
+FROM qwen:7b-chat-q3_K_S
+
+# --- PARÁMETROS DE OPTIMIZACIÓN ---
+
+# Reduce la ventana de contexto para ahorrar RAM y VRAM
+PARAMETER num_ctx 2048
+
+# Parámetros de generación para velocidad y eficiencia
+PARAMETER temperature 0.7
+PARAMETER top_k 20
+PARAMETER top_p 0.7
+
+SYSTEM "Eres NexoBot, un asistente IA ultra-eficiente. Tus respuestas son rápidas, precisas y concisas."

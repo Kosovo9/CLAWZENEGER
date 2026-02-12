@@ -1,0 +1,50 @@
+# Backups y temporales
+Backups/
+*.backup*
+*.log
+*.tmp
+
+# Configuraciones sensibles
+clawdbot.json
+clawdbot_emergency.json
+**/credentials/
+**/.clawdbot/
+**/.openclaw/
+
+# Docker volumes
+volumes/
+data/
+
+# Node modules si los hay
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets
+*.key
+*.pem
+*.env
+.env.local

@@ -1,0 +1,71 @@
+{
+  "name": "NexoBot Health Check",
+  "nodes": [
+    {
+      "parameters": { "rule": "*/5 * * * *" },
+      "name": "Cada 5 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [ 460, 300 ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:3000",
+        "options": { "continueOnFail": true }
+      },
+      "name": "Check OpenWebUI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [ 700, 200 ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:18789",
+        "options": { "continueOnFail": true }
+      },
+      "name": "Check Clawdbot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [ 700, 400 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "{{$items(\"Check OpenWebUI\")[0].json.statusCode}}",
+              "operation": "equal",
+              "value2": 200
+            },
+            {
+              "value1": "{{$items(\"Check Clawdbot\")[0].json.statusCode}}",
+              "operation": "equal",
+              "value2": 200
+            }
+          ]
+        }
+      },
+      "name": "Sistema OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [ 940, 300 ]
+    },
+    {
+      "parameters": {
+        "text": "ALERTA: Uno o más servicios de NexoBot han fallado.",
+        "color": "#FF0000"
+      },
+      "name": "ALERTA",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [ 1180, 400 ]
+    }
+  ],
+  "connections": {
+    "Cada 5 minutos": { "main": [ [ { "node": "Check OpenWebUI", "type": "main", "index": 0 }, { "node": "Check Clawdbot", "type": "main", "index": 0 } ] ] },
+    "Check OpenWebUI": { "main": [ [ { "node": "Sistema OK?", "type": "main", "index": 0 } ] ] },
+    "Check Clawdbot": { "main": [ [ { "node": "Sistema OK?", "type": "main", "index": 0 } ] ] },
+    "Sistema OK?": { "main": [ null, [ { "node": "ALERTA", "type": "main", "index": 0 } ] ] }
+  },
+  "active": true
+}

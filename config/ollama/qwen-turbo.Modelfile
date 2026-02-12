@@ -1,0 +1,5 @@
+FROM Intentando descargar: qwen:7b-chat-q4_K_M
+✅ Descarga de qwen:7b-chat-q4_K_M exitosa.
+qwen:7b-chat-q4_K_M
+PARAMETER num_gpu_layers 99
+SYSTEM "Eres un asistente IA extremadamente rápido y eficiente. Tus respuestas son concisas y directas."
