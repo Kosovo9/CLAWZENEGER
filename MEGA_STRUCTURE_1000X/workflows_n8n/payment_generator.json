@@ -1,0 +1,147 @@
+{
+    "name": "Payment Generator (MP/PayPal/Bank)",
+    "nodes": [
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "payment_method",
+                            "value": "mercadopago"
+                        },
+                        {
+                            "name": "amount",
+                            "value": "5000"
+                        },
+                        {
+                            "name": "concept",
+                            "value": "Servicio Bot IA"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Mock Input (Desde Chat)",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{ $json.payment_method }}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "mercadopago"
+                        },
+                        {
+                            "value2": "paypal",
+                            "output": 1
+                        },
+                        {
+                            "value2": "transferencia",
+                            "output": 2
+                        }
+                    ]
+                }
+            },
+            "name": "Switch Metodo",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.mercadopago.com/checkout/preferences",
+                "method": "POST",
+                "authentication": "headerAuth",
+                "jsonParameters": true,
+                "options": {},
+                "bodyParametersJson": "={ \"items\": [ { \"title\": \"{{ $json.concept }}\", \"quantity\": 1, \"currency_id\": \"MXN\", \"unit_price\": {{ $json.amount }} } ] }"
+            },
+            "name": "API Mercado Pago",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [
+                940,
+                140
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "MERCADO_PAGO_CREDENTIALS_ID",
+                    "name": "Mercado Pago Production"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "return { \"payment_link\": \"https://paypal.me/TU_USUARIO/\" + $json.amount + \"USD\" };"
+            },
+            "name": "Link PayPal.Me",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                940,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "html": "<html><body><h1>ORDEN DE PAGO</h1><p>Banco: BBVA</p><p>CLABE: 0123456789</p><p>Monto: ${{ $json.amount }}</p></body></html>",
+                "options": {}
+            },
+            "name": "Generar PDF Banco",
+            "type": "n8n-nodes-base.htmlToPdf",
+            "typeVersion": 1,
+            "position": [
+                940,
+                460
+            ]
+        }
+    ],
+    "connections": {
+        "Mock Input (Desde Chat)": {
+            "main": [
+                [
+                    {
+                        "node": "Switch Metodo",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch Metodo": {
+            "main": [
+                [
+                    {
+                        "node": "API Mercado Pago",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Link PayPal.Me",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Generar PDF Banco",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

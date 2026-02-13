@@ -1,0 +1,209 @@
+# CLAWZENEGER 1000X - ULTIMATE SYNAPTIC DEPLOYMENT (REfined)
+# Goal: zero latency, zero unauthorized errors, absolute resilience.
+
+services:
+  # ==========================================
+  # 🧠 CORE INFRASTRUCTURE
+  # ==========================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: claw-brain-ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - clawzeneger-net
+
+  hf-proxy:
+    image: litellm/litellm:latest
+    container_name: claw-brain-hfproxy
+    restart: always
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./config/litellm:/app/config
+    command: ["--config", "/app/config/config.yaml"]
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - clawzeneger-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: claw-cache-redis
+    restart: always
+    command: redis-server --requirepass Pataya@77/
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - clawzeneger-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: claw-db-postgres
+    restart: always
+    env_file: .env
+    environment:
+      - POSTGRES_USER=litellm
+      - POSTGRES_PASSWORD=litellm
+      - POSTGRES_DB=litellm
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - clawzeneger-net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: claw-memory-chromadb
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chroma-data:/chroma/chroma
+    networks:
+      - clawzeneger-net
+
+  # ==========================================
+  # ⚙️ CORE SYSTEMS
+  # ==========================================
+  hub-orchestrator:
+    build: 
+      context: ./hubzeneger
+      dockerfile: orchestrator/Dockerfile
+    container_name: hub-orchestrator
+    restart: always
+    ports:
+      - "54321:54321"
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://litellm:litellm@postgres:5432/litellm
+      - HF_PROXY_URL=http://hf-proxy:4000/v1
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - clawzeneger-net
+
+  hub-dashboard:
+    build: ./hubzeneger/dashboard
+    container_name: hub-dashboard
+    restart: always
+    ports:
+      - "3003:80"
+    networks:
+      - clawzeneger-net
+
+  neilchat-backend:
+    build: ./neilchat/backend
+    container_name: claw-neilchat-backend
+    restart: always
+    ports:
+      - "9300:9300"
+    env_file: .env
+    environment:
+      - HF_PROXY_URL=http://hf-proxy:4000/v1
+      - REDIS_HOST=redis
+      - WHISPER_URL=http://whisper:9000
+      - XTTS_URL=http://xtts:5002
+      - AGENT_NAME=${AGENT_NAME}
+      - AGENT_PERSONALITY=${AGENT_PERSONALITY}
+    volumes:
+      - ./neilchat/backend:/app
+      - .:/app/project_root
+    depends_on:
+      - hf-proxy
+      - redis
+      - chromadb
+    networks:
+      - clawzeneger-net
+
+  # 🛡️ THE SYNAPTIC GUARDIAN (Reborn)
+  guardian:
+    build:
+      context: ./neilchat/backend
+      dockerfile: guardian.Dockerfile
+    container_name: claw-guardian-1000x
+    restart: always
+    env_file: .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - clawzeneger-net
+
+  # ==========================================
+  # 👂 AUDIO PIPELINE
+  # ==========================================
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: claw-ears-whisper
+    restart: always
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    networks:
+      - clawzeneger-net
+
+  xtts:
+    image: ghcr.io/coqui-ai/tts:latest
+    container_name: claw-voice-xtts
+    restart: always
+    environment:
+      - COQUI_TOS_AGREED=1
+      - TTS_HOME=/root/.local/share/tts
+      - LOW_VRAM_MODE=true
+    volumes:
+      - tts-data:/root/.local/share/tts
+    entrypoint: ["python3", "-m", "TTS.server.server", "--model_path", "/root/.local/share/tts/tts/tts_models--multilingual--multi-dataset--xtts_v2", "--config_path", "/root/.local/share/tts/tts/tts_models--multilingual--multi-dataset--xtts_v2/config.json", "--use_cuda", "false"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - clawzeneger-net
+
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: claw-whatsapp-evolution
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file: .env
+    environment:
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://litellm:litellm@postgres:5432/evolution
+    depends_on:
+      - postgres
+    networks:
+      - clawzeneger-net
+
+networks:
+  clawzeneger-net:
+    driver: bridge
+
+volumes:
+  ollama-data:
+  redis-data:
+  postgres-data:
+  chroma-data:
+  tts-data:

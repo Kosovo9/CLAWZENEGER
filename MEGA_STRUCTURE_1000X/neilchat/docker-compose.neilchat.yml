@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  neilchat-backend:
+    build: ./backend
+    container_name: neilchat-backend
+    ports:
+      - "9300:9300"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:8000
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - WHISPER_URL=http://whisper:9000
+      - XTTS_URL=http://xtts:5002
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  neilchat-frontend:
+    build: ./frontend
+    container_name: neilchat-frontend
+    ports:
+      - "9301:80"
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+networks:
+  clawzeneger-net:
+    external: true

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # 💎 OPENWEBUI: La Interfaz Definitiva (Stable Version)
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:v0.1.106
+    container_name: clawzeneger-openwebui
+    restart: unless-stopped
+    ports:
+      - "56789:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_NAME=CLAWZENEGER 1000X
+      # Conectar con nuestra API de voz existente
+      - AUDIO_STT_ENGINE=openai
+      - AUDIO_STT_OPENAI_API_BASE_URL=http://whisper:9000/v1
+      - AUDIO_STT_OPENAI_API_KEY=sk-clawzeneger
+      # Conectar con nuestra API de TTS existente
+      - AUDIO_TTS_ENGINE=openai
+      - AUDIO_TTS_OPENAI_API_BASE_URL=http://xtts:5002/v1
+      - AUDIO_TTS_OPENAI_API_KEY=sk-clawzeneger
+    volumes:
+      - openwebui-data:/app/backend/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - clawzeneger-net
+
+  # 🧠 OLLAMA HÍBRIDO: El Cerebro Local (CPU/GPU)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: clawzeneger-ollama-hybrid
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    networks:
+      - clawzeneger-net
+
+volumes:
+  openwebui-data:
+  ollama-data:
+
+networks:
+  clawzeneger-net:
+    external: true

@@ -1,0 +1,117 @@
+version: '3.8'
+
+# 🚀 CLAWZENEGER "GOD MODE" STACK
+# This configuration launches the complete 1000x ecosystem.
+
+services:
+  # 🧠 CEREBRO CENTRAL (LLM Host)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: claw-brain
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - claw-net
+
+  # 🖥️ INTERFAZ DE COMANDO (UI)
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: claw-ui
+    restart: always
+    ports:
+      - "56789:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_NAME=CLAWZENEGER 10X
+      # Activar capacidades web / RAG
+      - ENABLE_RAG_WEB_SEARCH=true
+      - RAG_WEB_SEARCH_ENGINE=searxng
+      - RAG_WEB_SEARCH_URL=http://searxng:8080/search?q=<query>
+    volumes:
+      - ./data/openwebui:/app/backend/data
+    depends_on:
+      - ollama
+      - searxng
+    networks:
+      - claw-net
+
+  # ⚡ SISTEMA NERVIOSO (Automatización)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: claw-nerves
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    networks:
+      - claw-net
+
+  # 📚 MEMORIA INFINITA (Vector DB)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: claw-memory
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chroma:/chroma/chroma
+    networks:
+      - claw-net
+
+  # 🌐 BUSCADOR PRIVADO (Search)
+  searxng:
+    image: searxng/searxng:latest
+    container_name: claw-search
+    restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./config/searxng:/etc/searxng
+    environment:
+      - BASE_URL=http://localhost:8081/
+    networks:
+      - claw-net
+
+  # 👂 OÍDOS SÓNICOS (Whisper)
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: claw-ears
+    restart: always
+    ports:
+      - "9000:9000"
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    networks:
+      - claw-net
+
+  # 👁️ VISIÓN DIGITAL (Scraper)
+  browserless:
+    image: browserless/chrome:latest
+    container_name: claw-eyes
+    restart: always
+    ports:
+      - "3001:3000"
+    networks:
+      - claw-net
+
+networks:
+  claw-net:
+    driver: bridge

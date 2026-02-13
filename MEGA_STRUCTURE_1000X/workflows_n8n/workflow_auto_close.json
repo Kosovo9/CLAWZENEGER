@@ -1,0 +1,77 @@
+{
+    "name": "HUZENEGER AUTO-CLOSE V1",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "auto-close",
+                "options": {}
+            },
+            "name": "Webhook UI Button",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o",
+                "prompt": "Eres un vendedor experto llamado 'Neil'. Analiza este lead: {{ $json.body.lead_name }} (Nicho: {{ $json.body.niche }}). Escribe un mensaje de WhatsApp corto, persuasivo y personalizado para ofrecerles una auditoría gratuita de su web. Sé directo, profesional y usa emojis moderados. Termina con una pregunta cerrada.",
+                "options": {}
+            },
+            "name": "AI Sales Agent",
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "phoneNumber": "={{ $json.body.phone }}",
+                "message": "={{ $json.output }}",
+                "options": {}
+            },
+            "name": "WhatsApp Sender",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ],
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "evolution_api_key",
+                    "name": "Evolution API Key"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook UI Button": {
+            "main": [
+                [
+                    {
+                        "node": "AI Sales Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Sales Agent": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp Sender",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

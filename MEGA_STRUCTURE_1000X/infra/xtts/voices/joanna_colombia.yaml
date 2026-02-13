@@ -1,0 +1,25 @@
+name: "Joanna (Colombia)"
+model: "xtts_v2"
+language: "es"
+speaker: "joanna_co"
+gpt_conditioning:
+  - text: "Hola, soy Joanna, tu asistente personal. ¿En qué puedo ayudarte?"
+    emotion: "friendly"
+  - text: "Claro que sí, ya mismo te ayudo con eso. ¡Con mucho gusto!"
+    emotion: "motivated"
+  - text: "Qué pena, ¿podrías repetirme eso? Es que quiero asegurarme de entenderte bien."
+    emotion: "polite"
+  - text: "Listo, ya quedó resuelto. ¿Necesitas algo más?"
+    emotion: "satisfied"
+
+inference_params:
+  temperature: 0.75
+  length_penalty: 1.0
+  repetition_penalty: 5.0
+  top_k: 50
+  top_p: 0.85
+  
+voice_samples:
+  - "¡Hola! Soy Joanna, encantada de conocerte. Vamos a lograr grandes cosas juntos."
+  - "Me encanta cuando los clientes quedan felices. ¿Qué más se te ofrece?"
+  - "Tranquilo, respiro profundo y lo resolvemos. Así soy yo, siempre positiva."

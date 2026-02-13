@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  backend-finisher:
+    build: ./project-finishers/backend-finisher
+    container_name: claw-finisher-backend
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:4000/v1
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    volumes:
+      - c:/:/host
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  frontend-finisher:
+    build: ./project-finishers/frontend-finisher
+    container_name: claw-finisher-frontend
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:4000/v1
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    volumes:
+      - c:/:/host
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  devops-finisher:
+    build: ./project-finishers/devops-finisher
+    container_name: claw-finisher-devops
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:4000/v1
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    volumes:
+      - c:/:/host
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  qa-finisher:
+    build: ./project-finishers/qa-finisher
+    container_name: claw-finisher-qa
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:4000/v1
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    volumes:
+      - c:/:/host
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  docs-monetization-finisher:
+    build: ./project-finishers/docs-monetization-finisher
+    container_name: claw-finisher-docs
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:4000/v1
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    volumes:
+      - c:/:/host
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+networks:
+  clawzeneger-net:
+    external: true

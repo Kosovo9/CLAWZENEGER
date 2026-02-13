@@ -1,0 +1,405 @@
+version: '3.8'
+
+networks:
+  hubzeneger-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: hub-postgres
+    environment:
+      POSTGRES_USER: claw
+      POSTGRES_PASSWORD: claw123
+      POSTGRES_DB: hubzeneger
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: hub-redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: hub-chromadb
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  hf-proxy:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: hub-hf-proxy
+    ports:
+      - "4000:8000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/litellm
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  orchestrator:
+    build: 
+      context: ./orchestrator
+    container_name: hub-orchestrator
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/hubzeneger
+      - HF_PROXY_URL=http://hub-hf-proxy:8000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  dashboard:
+    build: 
+      context: ./dashboard
+    container_name: hub-dashboard
+    ports:
+      - "3000:80"
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+market-researcher:
+  build: 
+    context: .
+    dockerfile: agents/market_researcher/Dockerfile
+  container_name: hub-market-researcher
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+coder-10000x:
+  build: 
+    context: .
+    dockerfile: agents/coder_10000x/Dockerfile
+  container_name: hub-coder-10000x
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+mechanic-247:
+  build: 
+    context: .
+    dockerfile: agents/mechanic_247/Dockerfile
+  container_name: hub-mechanic-247
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+orchestrator-agent:
+  build: 
+    context: .
+    dockerfile: agents/orchestrator_agent/Dockerfile
+  container_name: hub-orchestrator-agent
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+brand-twins:
+  build: 
+    context: .
+    dockerfile: agents/brand_twins/Dockerfile
+  container_name: hub-brand-twins
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+a2a-commerce:
+  build: 
+    context: .
+    dockerfile: agents/a2a_commerce/Dockerfile
+  container_name: hub-a2a-commerce
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+intent-pipeline:
+  build: 
+    context: .
+    dockerfile: agents/intent_pipeline/Dockerfile
+  container_name: hub-intent-pipeline
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+geo-optimizer:
+  build: 
+    context: .
+    dockerfile: agents/geo_optimizer/Dockerfile
+  container_name: hub-geo-optimizer
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+aeo-optimizer:
+  build: 
+    context: .
+    dockerfile: agents/aeo_optimizer/Dockerfile
+  container_name: hub-aeo-optimizer
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+unified-intent-graph:
+  build: 
+    context: .
+    dockerfile: agents/unified_intent_graph/Dockerfile
+  container_name: hub-unified-intent-graph
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+content-generator:
+  build: 
+    context: .
+    dockerfile: agents/content_generator/Dockerfile
+  container_name: hub-content-generator
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+dark-data-activator:
+  build: 
+    context: .
+    dockerfile: agents/dark_data_activator/Dockerfile
+  container_name: hub-dark-data-activator
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+predictive-analytics:
+  build: 
+    context: .
+    dockerfile: agents/predictive_analytics/Dockerfile
+  container_name: hub-predictive-analytics
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+causal-models:
+  build: 
+    context: .
+    dockerfile: agents/causal_models/Dockerfile
+  container_name: hub-causal-models
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+drift-monitor:
+  build: 
+    context: .
+    dockerfile: agents/drift_monitor/Dockerfile
+  container_name: hub-drift-monitor
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+realtime-personalizer:
+  build: 
+    context: .
+    dockerfile: agents/realtime_personalizer/Dockerfile
+  container_name: hub-realtime-personalizer
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+self-healer-advanced:
+  build: 
+    context: .
+    dockerfile: agents/self_healer_advanced/Dockerfile
+  container_name: hub-self-healer-advanced
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+outcome-pricing:
+  build: 
+    context: .
+    dockerfile: agents/outcome_pricing/Dockerfile
+  container_name: hub-outcome-pricing
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+multichannel-optimizer:
+  build: 
+    context: .
+    dockerfile: agents/multichannel_optimizer/Dockerfile
+  container_name: hub-multichannel-optimizer
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb
+
+b2a2c-platform:
+  build: 
+    context: .
+    dockerfile: agents/b2a2c_platform/Dockerfile
+  container_name: hub-b2a2c-platform
+  environment:
+    - REDIS_URL=redis://redis:6379/0
+    - CHROMA_HOST=hub-chromadb
+    - HF_PROXY_URL=http://hub-hf-proxy:8000
+  networks:
+    - hubzeneger-net
+  restart: unless-stopped
+  depends_on:
+    - redis
+    - chromadb

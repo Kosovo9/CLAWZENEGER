@@ -1,0 +1,8 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY project_orchestrator.py .
+COPY projects_config.json .
+ENV PYTHONPATH=/app
+CMD ["python", "project_orchestrator.py"]

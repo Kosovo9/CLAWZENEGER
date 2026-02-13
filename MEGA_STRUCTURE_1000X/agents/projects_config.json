@@ -1,0 +1,24 @@
+[
+    {
+        "id": "nexov-001",
+        "name": "NexoV Bot Core",
+        "path": "c:/CLAWZENEGER/nexovbot",
+        "status": "pending",
+        "type": "backend/bot",
+        "metadata": {
+            "has_whatsapp": true,
+            "needs_escrow": false
+        }
+    },
+    {
+        "id": "studio-001",
+        "name": "Studio Nexora Landings",
+        "path": "c:/CLAWZENEGER/Studio-Nexora-Jan11-2026-landings",
+        "status": "pending",
+        "type": "frontend/landing",
+        "metadata": {
+            "framework": "react",
+            "has_payment": true
+        }
+    }
+]

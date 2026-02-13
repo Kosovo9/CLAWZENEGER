@@ -1,0 +1,183 @@
+{
+    "name": "Sales Pipeline - Lead to Payment",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "lead-webhook",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-lead-capture",
+            "name": "Webhook - Captura Lead",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "http://nexovbot-core:5000/qualify-lead",
+                "authentication": "none",
+                "requestMethod": "POST",
+                "jsonParameters": true,
+                "options": {},
+                "bodyParametersJson": "={\n  \"message\": \"{{ $json.message }}\",\n  \"context\": {\n    \"source\": \"{{ $json.source || 'web' }}\",\n    \"phone\": \"{{ $json.phone }}\",\n    \"email\": \"{{ $json.email }}\"\n  }\n}"
+            },
+            "id": "qualify-with-nexovbot",
+            "name": "Nexovbot - Calificar Lead",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.is_hot }}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "filter-hot-leads",
+            "name": "Filtro - Solo Leads Calientes",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "http://evolution-api:8080/message/sendText/clawzeneger",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "requestMethod": "POST",
+                "jsonParameters": true,
+                "options": {},
+                "bodyParametersJson": "={\n  \"number\": \"{{ $json.phone }}\",\n  \"text\": \"{{ $json.suggested_response }}\\n\\n💳 *Reserva tu bot ahora con descuento*: https://buy.stripe.com/clawzeneger\"\n}"
+            },
+            "id": "send-whatsapp-offer",
+            "name": "WhatsApp - Enviar Oferta",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                850,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "insert",
+                "schema": "public",
+                "table": "leads",
+                "columns": "phone, email, message, score, is_hot, source, created_at",
+                "additionalFields": {},
+                "options": {}
+            },
+            "id": "save-to-postgres",
+            "name": "PostgreSQL - Guardar Lead",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 2.2,
+            "position": [
+                850,
+                400
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "1",
+                    "name": "PostgreSQL - Clawzeneger"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={\n  \"success\": true,\n  \"lead_id\": \"{{ $json.id }}\",\n  \"message\": \"Lead procesado exitosamente\"\n}"
+            },
+            "id": "respond-success",
+            "name": "Responder - Success",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Captura Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Nexovbot - Calificar Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Nexovbot - Calificar Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Filtro - Solo Leads Calientes",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filtro - Solo Leads Calientes": {
+            "main": [
+                [
+                    {
+                        "node": "WhatsApp - Enviar Oferta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "PostgreSQL - Guardar Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "WhatsApp - Enviar Oferta": {
+            "main": [
+                [
+                    {
+                        "node": "PostgreSQL - Guardar Lead",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PostgreSQL - Guardar Lead": {
+            "main": [
+                [
+                    {
+                        "node": "Responder - Success",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {},
+    "versionId": "1"
+}

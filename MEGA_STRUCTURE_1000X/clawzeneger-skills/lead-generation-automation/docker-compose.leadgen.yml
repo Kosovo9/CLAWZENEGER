@@ -1,0 +1,87 @@
+version: '3.8'
+
+networks:
+  hubzeneger-net:
+    external: true
+
+services:
+  lead-hunter:
+    build: 
+      context: .
+      dockerfile: agents/lead_hunter/Dockerfile
+    container_name: lead-hunter
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/leadgen
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  lead-surveyor:
+    build: 
+      context: .
+      dockerfile: agents/surveyor/Dockerfile
+    container_name: lead-surveyor
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/leadgen
+      - ZOHO_CLIENT_ID=${ZOHO_CLIENT_ID}
+      - ZOHO_CLIENT_SECRET=${ZOHO_CLIENT_SECRET}
+      - ZOHO_REFRESH_TOKEN=${ZOHO_REFRESH_TOKEN}
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  lead-offer-validator:
+    build: 
+      context: .
+      dockerfile: agents/offer_validator/Dockerfile
+    container_name: lead-offer-validator
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/leadgen
+      - HELPFULL_API_KEY=${HELPFULL_API_KEY}
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  lead-ux-auditor:
+    build: 
+      context: .
+      dockerfile: agents/ux_auditor/Dockerfile
+    container_name: lead-ux-auditor
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/leadgen
+      - MAZE_API_KEY=${MAZE_API_KEY}
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  lead-sales-closer:
+    build: 
+      context: .
+      dockerfile: agents/sales_closer/Dockerfile
+    container_name: lead-sales-closer
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/leadgen
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - WHATSAPP_API_KEY=${WHATSAPP_API_KEY}
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped
+
+  lead-orchestrator:
+    build: 
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    container_name: lead-orchestrator
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/leadgen
+    networks:
+      - hubzeneger-net
+    restart: unless-stopped

@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 🏢 AFFILIATE API (BACKEND)
+  affiliate-backend:
+    build: backend
+    container_name: clawzeneger-affiliate-backend
+    ports:
+      - "9200:9200"
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:clawzeneger2026@postgres:5432/affiliate_db
+      - REDIS_URL=redis://redis:6379/1
+      # 💰 OPENCLAW KILLER: PAYMENT GATEWAYS
+      - STRIPE_SECRET_KEY=sk_test_12345
+      - PAYPAL_CLIENT_ID=AXMBQ29TlSTG7yu3IYzIBI-oHvolwqxn0_atALymIFetkT22qeLjkDFYcEVc-V5TDZmuSVdwyPicBTq-
+      - MERCADOPAGO_ACCESS_TOKEN=TEST-1234567890
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  # 🖥️ AFFILIATE UI (FRONTEND REACT)
+  affiliate-frontend:
+    build: frontend
+    container_name: clawzeneger-affiliate-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - affiliate-backend
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+networks:
+  clawzeneger-net:
+    external: true
+
+  # 🕷️ REFERENCIA EXTERNA (No crear, solo usar)
+  postgres:
+    external: true
+  redis:
+    external: true

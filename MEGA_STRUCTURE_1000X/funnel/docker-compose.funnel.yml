@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # 🌪️ FUNNEL ENGINE (BACKEND)
+  funnel-backend:
+    build: backend
+    container_name: clawzeneger-funnel-backend
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:clawzeneger2026@postgres:5432/funnel_db
+      - REDIS_URL=redis://redis:6379/1
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  # 🖥️ FUNNEL BUILDER (FRONTEND REACT)
+  funnel-frontend:
+    build: frontend
+    container_name: clawzeneger-funnel-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - funnel-backend
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+networks:
+  clawzeneger-net:
+    external: true
+
+  # 🕷️ REFERENCIA EXTERNA (No crear, solo usar)
+  postgres:
+    external: true
+  redis:
+    external: true

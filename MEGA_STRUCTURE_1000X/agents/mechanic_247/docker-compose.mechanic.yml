@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # 🔧 MECHANIC 24/7: EL GUARDIÁN DEL ENJAMBRE
+  mechanic:
+    build: .
+    container_name: clawzeneger-mechanic-247
+    image: clawzeneger/mechanic:latest
+    volumes:
+      # 🔥 ACCESO PRIVILEGIADO AL MOTOR DOCKER (PARA REINICIAR CONTENEDORES)
+      - //var/run/docker.sock:/var/run/docker.sock
+      # 📝 ACCESO A LOGS PARA DIAGNÓSTICO
+      - ../../../logs:/app/logs
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AUTO_FIX_ENABLED=true
+      - MAX_RETRIES=5
+    networks:
+      - clawzeneger-net
+    restart: always # ¡INMORTAL!
+
+networks:
+  clawzeneger-net:
+    external: true

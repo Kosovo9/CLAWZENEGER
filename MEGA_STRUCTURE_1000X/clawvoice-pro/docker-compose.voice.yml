@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  tts-pro:
+    image: python:3.11-slim
+    container_name: claw-tts-pro
+    volumes:
+      - ./backend:/app
+      - ./models:/models
+    working_dir: /app
+    environment:
+      - MODEL_TYPE=Qwen3-TTS
+    command: python main.py
+    networks:
+      - clawzeneger-net
+
+  lip-sync:
+    image: python:3.9-slim # Wav2Lip likes 3.9
+    container_name: claw-lip-sync
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: python sync.py
+    networks:
+      - clawzeneger-net
+
+  white-label-portal:
+    build: ./frontend
+    container_name: claw-voice-portal
+    ports:
+      - "3005:80"
+    environment:
+      - STRIPE_KEY=${STRIPE_KEY}
+      - MERCADO_PAGO_TOKEN=${MERCADO_PAGO_TOKEN}
+    networks:
+      - clawzeneger-net
+
+networks:
+  clawzeneger-net:
+    external: true

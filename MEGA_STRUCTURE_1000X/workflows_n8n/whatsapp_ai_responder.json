@@ -1,0 +1,180 @@
+{
+    "name": "WhatsApp AI Responder - Clawzeneger",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "whatsapp-message",
+                "responseMode": "onReceived",
+                "options": {}
+            },
+            "id": "webhook-whatsapp",
+            "name": "WhatsApp Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.body.key.fromMe }}",
+                            "operation": "notEqual",
+                            "value2": "true"
+                        }
+                    ]
+                }
+            },
+            "id": "filter-incoming",
+            "name": "Filter Own Messages",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                470,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://hf-proxy:8000/v1/chat/completions",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer sk-clawzeneger-master-2026"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": []
+                },
+                "jsonParameters": true,
+                "options": {},
+                "bodyParametersJson": "={\n  \"model\": \"llama-3.2-3b\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres Clawzeneger, un asistente de IA especializado en ventas de bots y automatización. Respondes en español mexicano, de forma persuasiva pero natural. Máximo 3 líneas por respuesta.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.body.message.conversation || $json.body.message.extendedTextMessage.text }}\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"max_tokens\": 200\n}"
+            },
+            "id": "ai-brain-hf",
+            "name": "AI Brain (HF Proxy)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                690,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://whatsapp:8080/message/sendText/clawzeneger",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "={{ $env.WHATSAPP_API_KEY }}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonParameters": true,
+                "options": {},
+                "bodyParametersJson": "={\n  \"number\": \"{{ $json.body.key.remoteJid }}\",\n  \"text\": \"{{ $node['AI Brain (HF Proxy)'].json.choices[0].message.content }}\"\n}"
+            },
+            "id": "send-whatsapp",
+            "name": "Send WhatsApp Reply",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                910,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://chromadb:8000/api/v1/collections/whatsapp_history/add",
+                "sendBody": true,
+                "jsonParameters": true,
+                "options": {},
+                "bodyParametersJson": "={\n  \"ids\": [\"{{ $json.body.key.id }}\"],\n  \"documents\": [\"Usuario: {{ $json.body.message.conversation || $json.body.message.extendedTextMessage.text }}\\nBot: {{ $node['AI Brain (HF Proxy)'].json.choices[0].message.content }}\"],\n  \"metadatas\": [{\n    \"from\": \"{{ $json.body.key.remoteJid }}\",\n    \"timestamp\": \"{{ $json.body.messageTimestamp }}\"\n  }]\n}"
+            },
+            "id": "save-memory",
+            "name": "Save to ChromaDB",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1130,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "WhatsApp Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Own Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Own Messages": {
+            "main": [
+                [
+                    {
+                        "node": "AI Brain (HF Proxy)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Brain (HF Proxy)": {
+            "main": [
+                [
+                    {
+                        "node": "Send WhatsApp Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send WhatsApp Reply": {
+            "main": [
+                [
+                    {
+                        "node": "Save to ChromaDB",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {},
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2026-02-13T20:00:00.000Z",
+    "versionId": "clawzeneger-v1"
+}

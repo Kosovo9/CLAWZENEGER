@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dental San Felipe - Sonrisas 1000X</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #050505;
+            color: white;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .hero-gradient {
+            background: radial-gradient(circle at top right, rgba(220, 38, 38, 0.15), transparent);
+        }
+    </style>
+</head>
+
+<body class="hero-gradient min-h-screen">
+    <nav class="p-6 flex justify-between items-center max-w-7xl mx-auto">
+        <div class="text-2xl font-black italic tracking-tighter">DENTAL<span class="text-red-600">SANFELIPE</span></div>
+        <button
+            class="bg-red-600 hover:bg-red-500 px-6 py-2 rounded-full font-bold transition-all shadow-lg shadow-red-600/30">Agendar
+            Cita</button>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 pt-20 pb-40">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-8">
+                <div
+                    class="inline-block bg-red-600/10 border border-red-500/20 text-red-500 px-4 py-1 rounded-full text-xs font-black tracking-widest uppercase">
+                    Tecnología de Vanguardia</div>
+                <h1 class="text-6xl lg:text-8xl font-black leading-none tracking-tighter">LA REVOLUCIÓN DE TU <span
+                        class="text-red-600">SONRISA.</span></h1>
+                <p class="text-gray-400 text-xl font-medium max-w-lg">Transformamos tu estética dental con precisión
+                    robótica y diseño digital. Resultados inmediatos, sin dolor.</p>
+                <div class="flex gap-4">
+                    <button
+                        class="bg-white text-black px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">Ver
+                        Resultados</button>
+                    <button
+                        class="glass px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:border-red-500/50 transition-all">Nuestro
+                        Equipo</button>
+                </div>
+            </div>
+            <div class="relative">
+                <div
+                    class="w-full aspect-square bg-[#111] rounded-[4rem] overflow-hidden border border-white/5 relative group">
+                    <img src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80&w=1000"
+                        class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700">
+                    <div class="absolute inset-0 bg-red-600/10 mix-blend-overlay"></div>
+                </div>
+                <div
+                    class="absolute -bottom-10 -left-10 glass p-8 rounded-3xl shadow-2xl animate-bounce duration-[3000ms]">
+                    <div class="text-red-500 font-black text-4xl leading-none">99%</div>
+                    <div class="text-gray-500 text-[10px] font-black uppercase tracking-widest">Satisfacción Total</div>
+                </div>
+            </div>
+        </div>
+
+        <section class="mt-40 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="glass p-10 rounded-[3rem] space-y-4 hover:border-red-500/30 transition-all">
+                <div class="text-4xl">🦷</div>
+                <h3 class="text-2xl font-black">Implantes 5G</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Carga inmediata en menos de 24 horas con materiales
+                    biocompatibles de última generación.</p>
+            </div>
+            <div
+                class="glass p-10 rounded-[3rem] space-y-4 hover:border-red-500/30 transition-all scale-105 border-red-500/20 bg-red-600/5">
+                <div class="text-4xl">💎</div>
+                <h3 class="text-2xl font-black">Diseño Digital</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Visualiza tu sonrisa final antes de empezar mediante
+                    escaneo intraoral 3D de alta precisión.</p>
+            </div>
+            <div class="glass p-10 rounded-[3rem] space-y-4 hover:border-red-500/30 transition-all">
+                <div class="text-4xl">🔬</div>
+                <h3 class="text-2xl font-black">Láser Quirúrgico</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Cirugías mínimamente invasivas con recuperación
+                    acelerada y cero sangrado.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="p-10 border-t border-white/5 text-center text-gray-600 text-xs font-bold uppercase tracking-widest">
+        &copy; 2026 Dental San Felipe - Powered by <span class="text-red-600">ClawZeneger</span>
+    </footer>
+</body>
+
+</html>

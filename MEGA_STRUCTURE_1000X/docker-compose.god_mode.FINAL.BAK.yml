@@ -1,0 +1,495 @@
+
+
+# 🚀 CLAWZENEGER "GOD MODE" STACK - VERSION FINAL
+# Stack completo con 11 servicios integrados
+# Autor: NeoWolf/Roberto - CLAWZENEGER 10X
+# Fecha: 2026-02-13
+
+services:
+  # 🧠 CEREBRO CENTRAL (LLM Host Local)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: claw-brain-ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🌐 PROXY HUGGING FACE (Acceso a modelos cloud con API unificada)
+  hf-proxy:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: claw-brain-hfproxy
+    restart: always
+    ports:
+      - "4000:8000"
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-clawzeneger-secret-key}
+      - HF_TOKEN=${HF_TOKEN}
+      - DATABASE_URL=postgresql://litellm:litellm@postgres:5432/litellm
+      # Cacheo con Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-clawzeneger2026}
+    volumes:
+      - ./config/litellm/config.yaml:/app/config.yaml
+    command: 
+      - "--config"
+      - "/app/config.yaml"
+      - "--port"
+      - "8000"
+      - "--detailed_debug"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🤖 NEXOVBOT CORE (Agente de Ventas + Lead Qualifier)
+  nexovbot-core:
+    build: ../nexovbot
+    container_name: claw-agent-nexovbot
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-clawzeneger-secret-key}
+      - HF_PROXY_URL=http://hf-proxy:8000/v1
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - hf-proxy
+      - redis
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🗄️ REDIS (Cache para HF-Proxy y n8n)
+  redis:
+    image: redis:7-alpine
+    container_name: claw-cache-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-clawzeneger2026}
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🐘 POSTGRESQL (DB para LiteLLM analytics)
+  postgres:
+    image: postgres:15-alpine
+    container_name: claw-db-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=litellm
+      - POSTGRES_PASSWORD=litellm
+      - POSTGRES_DB=litellm
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🖥️ INTERFAZ DE COMANDO (UI)
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: claw-ui-openwebui
+    restart: always
+    ports:
+      - "56789:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_NAME=CLAWZENEGER 10X
+      # Activar capacidades web / RAG
+      - ENABLE_RAG_WEB_SEARCH=true
+      - RAG_WEB_SEARCH_ENGINE=searxng
+      - RAG_WEB_SEARCH_URL=http://searxng:8080/search?q=<query>
+      # Integración con ChromaDB
+      - CHROMA_HTTP_HOST=chromadb
+      - CHROMA_HTTP_PORT=8000
+      # OpenAI API para usar HF-Proxy
+      - OPENAI_API_BASE_URL=http://hf-proxy:8000/v1
+      - OPENAI_API_KEY=${LITELLM_MASTER_KEY:-sk-clawzeneger-secret-key}
+    volumes:
+      - ./data/openwebui:/app/backend/data
+    depends_on:
+      - ollama
+      - searxng
+      - chromadb
+      - hf-proxy
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ⚡ SISTEMA NERVIOSO (Automatización)
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: claw-nerves-n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      # Integración con Redis para queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD:-clawzeneger2026}
+      - EXECUTIONS_MODE=queue
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+      - ./MEGA_STRUCTURE_1000X/workflows_n8n:/home/node/.n8n/workflows
+    depends_on:
+      - redis
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 📚 MEMORIA INFINITA (Vector DB)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: claw-memory-chromadb
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - ./data/chroma:/chroma/chroma
+    # Healthcheck removed for speed (ChromaDB image is minimal)
+    networks:
+      - clawzeneger-net
+
+  # 🌐 BUSCADOR PRIVADO (Search)
+  searxng:
+    image: searxng/searxng:latest
+    container_name: claw-search-searxng
+    restart: always
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./config/searxng:/etc/searxng
+    environment:
+      - BASE_URL=http://localhost:8081/
+      - INSTANCE_NAME=Clawzeneger Search
+    # Healthcheck removed for speed
+    networks:
+      - clawzeneger-net
+
+  # 👂 OÍDOS SÓNICOS (Whisper - Speech to Text)
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: claw-ears-whisper
+    restart: always
+    ports:
+      - "9000:9000"
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🗣️ VOZ REAL (XTTS - Text to Speech)
+  xtts:
+    image: ghcr.io/coqui-ai/tts:latest
+    container_name: claw-voice-xtts
+    restart: always
+    ports:
+      - "5002:5002"
+    environment:
+      - COQUI_TOS_AGREED=1
+    entrypoint: ["python3", "-m", "TTS.server.server"]
+    command: 
+      - "--model_name"
+      - "tts_models/multilingual/multi-dataset/xtts_v2"
+      - "--port"
+      - "5002"
+    volumes:
+      - ./data/xtts:/root/.local/share/tts
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/api/tts"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 👁️ VISIÓN DIGITAL (Scraper & Browser)
+  browserless:
+    image: browserless/chrome:latest
+    container_name: claw-eyes-browserless
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=5
+      - CONNECTION_TIMEOUT=60000
+      - ENABLE_DEBUGGER=false
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/pressure"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ⚙️ ORQUESTADOR (HubZeneger API)
+  orchestrator:
+    build: 
+      context: ./hubzeneger/orchestrator
+    container_name: hub-orchestrator
+    restart: always
+    ports:
+      - "54321:54321"
+    env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://litellm:litellm@postgres:5432/litellm
+      - HF_PROXY_URL=http://hf-proxy:8000/v1
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - clawzeneger-net
+
+  # 📊 DASHBOARD (HubZeneger UI)
+  dashboard:
+    build: 
+      context: ./hubzeneger/dashboard
+    container_name: hub-dashboard
+    restart: always
+    ports:
+      - "3003:80" # Avoid conflict with OpenWebUI on 3000
+    networks:
+      - clawzeneger-net
+
+  # 💰 FUNNEL BACKEND (Pagos & Ventas)
+  funnel-backend:
+    build: 
+      context: ./funnel/backend
+    container_name: claw-funnel-backend
+    restart: always
+    ports:
+      - "8002:8000"
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://litellm:litellm@postgres:5432/litellm
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:8000/v1
+    networks:
+      - clawzeneger-net
+
+  # 🔍 SCRAPER API (YouTube/Web - Meta Intel)
+  scraper-api:
+    build: 
+      context: ./scraper-system/backend
+      dockerfile: Dockerfile
+    container_name: claw-scraper-api
+    restart: always
+    ports:
+      - "8001:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://litellm:litellm@postgres:5432/litellm
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - BROWSERLESS_URL=ws://scraper-ghost-browser:3000
+      - HF_PROXY_URL=http://hf-proxy:8000/v1
+    depends_on:
+      - scraper-ghost-browser
+      - redis
+      - chromadb
+    networks:
+      - clawzeneger-net
+
+  # 👷 SCRAPER WORKER (Task Processor)
+  scraper-worker:
+    build: 
+      context: ./scraper-system/backend
+      dockerfile: Dockerfile
+    container_name: claw-scraper-worker
+    command: celery -A app.worker worker --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://litellm:litellm@postgres:5432/litellm
+      - BROWSERLESS_URL=ws://scraper-ghost-browser:3000
+      - HF_PROXY_URL=http://hf-proxy:8000/v1
+    depends_on:
+      - scraper-api
+      - scraper-ghost-browser
+      - redis
+    networks:
+      - clawzeneger-net
+    restart: always
+
+  # 👻 GHOST BROWSER (OpenClaw Killer)
+  scraper-ghost-browser:
+    image: browserless/chrome:latest
+    container_name: claw-scraper-ghost-browser
+    ports:
+      - "3002:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+      - TOKEN=clawzeneger-secure-browser
+    networks:
+      - clawzeneger-net
+    restart: always
+
+  # 📱 WHATSAPP GATEWAY (Evolution API)
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: claw-whatsapp-evolution
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTHENTICATION_API_KEY=${WHATSAPP_API_KEY:-CHANGE_THIS_SECRET_NOW}
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://litellm:litellm@postgres:5432/evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      # Configuración de instancia
+      - INSTANCE_NAME=clawzeneger
+      - QRCODE_LIMIT=30
+      # Webhooks para n8n
+      - WEBHOOK_GLOBAL_URL=http://n8n:5678/webhook/whatsapp
+      - WEBHOOK_GLOBAL_ENABLED=true
+    volumes:
+      - ./data/whatsapp:/evolution/instances
+    depends_on:
+      - postgres
+      - n8n
+    networks:
+      - clawzeneger-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🤝 SISTEMA DE AFILIADOS (Backend)
+  affiliate-backend:
+    build: 
+      context: ./affiliate-system/backend
+    container_name: claw-affiliate-backend
+    restart: always
+    ports:
+      - "9200:9200"
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://litellm:litellm@postgres:5432/litellm
+      - REDIS_URL=redis://redis:6379/0
+      - BASE_URL=http://localhost:3000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - clawzeneger-net
+
+  # 🤝 SISTEMA DE AFILIADOS (Frontend)
+  affiliate-frontend:
+    build: 
+      context: ./affiliate-system/frontend
+      dockerfile: Dockerfile
+    container_name: claw-affiliate-frontend
+    restart: always
+    ports:
+      - "9201:80"
+    networks:
+      - clawzeneger-net
+
+  # 🦅 NEILZENNEGER (Super Bot Coordinador & Auditor)
+  neilzenneger:
+    build: 
+      context: ./agents/neilzenneger
+    container_name: claw-neilzenneger
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ORCHESTRATOR_URL=http://orchestrator:8000
+      - FUNNEL_URL=http://funnel-backend:8002
+      - AFFILIATE_URL=http://affiliate-backend:9200
+      - SCRAPER_URL=http://scraper-api:8001
+      - CHROMA_HOST=chromadb
+      - HUBZENEGER_API_KEY=${HUBZENEGER_API_KEY}
+      - NOTIFICATION_WEBHOOK=${NEIL_WEBHOOK}
+    networks:
+      - clawzeneger-net
+    depends_on:
+      - redis
+      - orchestrator
+      - funnel-backend
+      - affiliate-backend
+      - scraper-api
+      - chromadb
+
+networks:
+  clawzeneger-net:
+    driver: bridge
+    name: clawzeneger-net
+
+volumes:
+  ollama-data:
+  openwebui-data:
+  n8n-data:
+  chroma-data:
+  redis-data:
+  postgres-data:
+  whatsapp-data:
+  xtts-data:

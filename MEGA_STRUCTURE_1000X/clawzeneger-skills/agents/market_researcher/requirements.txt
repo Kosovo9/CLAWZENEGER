@@ -1,0 +1,8 @@
+
+fastapi
+uvicorn
+httpx
+redis
+chromadb
+beautifulsoup4
+yt_dlp

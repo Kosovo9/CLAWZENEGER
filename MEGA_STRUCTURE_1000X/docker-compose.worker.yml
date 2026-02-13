@@ -1,0 +1,44 @@
+version: '3.8'
+
+# 🚜 CLAWZENEGER WORKER NODE (PC 2)
+# Este nodo se dedica puramente a PROCESAMIENTO PESADO (Inferencia de IA, Generación de Imagen).
+# Recibe órdenes del PC MAESTRO (PC 1).
+
+services:
+  # 🧠 CEREBRO DE APOYO (Heavy Inference)
+  ollama-worker:
+    image: ollama/ollama:latest
+    container_name: claw-worker-brain
+    restart: always
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ./data/ollama_worker:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # 🎨 GENERADOR DE IMÁGENES (Stable Diffusion / Flux)
+  # (Opcional: Descomentar si la PC 2 tiene buena GPU)
+  # stable-diffusion:
+  #   image: automatic1111/stable-diffusion-webui:latest
+  #   ports:
+  #     - "7860:7860"
+  #   environment:
+  #     - CLI_ARGS=--api --listen
+
+  # 👁️ EXTRA EYES (Scraping Paralelo)
+  browserless-worker:
+    image: browserless/chrome:latest
+    container_name: claw-worker-eyes
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=20

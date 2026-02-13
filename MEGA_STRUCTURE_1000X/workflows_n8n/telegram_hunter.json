@@ -1,0 +1,102 @@
+{
+    "name": "Hunter Agent - Telegram Lead Scraper",
+    "nodes": [
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": {}
+            },
+            "name": "Telegram Trigger",
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "modelId": "llama3:latest",
+                "prompt": "=Analiza el siguiente mensaje de Telegram y dime si es un LEAD DE VENTA potencial para servicios de desarrollo web/bots.\nMensaje: {{ $json.message.text }}\nResponde estrictamente un JSON: { \"is_lead\": true/false, \"reason\": \"...\", \"confidence\": 0-100 }",
+                "jsonOutput": true
+            },
+            "name": "AI Filter (Ollama)",
+            "type": "n8n-nodes-base.ollama",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.is_lead }}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "name": "Es Cliente?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "YOUR_ADMIN_CHAT_ID",
+                "text": "=🔥 LEAD DETECTADO 🔥\nUsuario: {{ $node[\"Telegram Trigger\"].json.message.from.first_name }}\nMensaje: {{ $node[\"Telegram Trigger\"].json.message.text }}\n\nBot dice: {{ $json.reason }}",
+                "additionalFields": {}
+            },
+            "name": "Notificar Admin",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1,
+            "position": [
+                1100,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Telegram Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "AI Filter (Ollama)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Filter (Ollama)": {
+            "main": [
+                [
+                    {
+                        "node": "Es Cliente?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Es Cliente?": {
+            "main": [
+                [
+                    {
+                        "node": "Notificar Admin",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

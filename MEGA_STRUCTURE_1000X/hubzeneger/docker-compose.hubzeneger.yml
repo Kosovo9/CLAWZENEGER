@@ -1,0 +1,85 @@
+
+version: '3.8'
+
+services:
+  # ORCHESTRATOR (API Gateway)
+  orchestrator:
+    build: 
+      context: ./orchestrator
+    container_name: hub-orchestrator
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/hubzeneger
+      - HF_PROXY_URL=http://hub-hf-proxy:8000
+    networks:
+      - hubzeneger-net
+    depends_on:
+      - redis
+      - postgres
+
+  # SCRAPER SYSTEM API
+  scraper-api:
+    build:
+      context: ../scraper-system/backend
+    container_name: hub-scraper-api
+    ports:
+      - "8001:8000"
+    env_file:
+      - ../.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - hubzeneger-net
+
+  # FUNNEL & CAMPAIGN BACKEND
+  funnel-backend:
+    build:
+      context: ../funnel/backend
+    container_name: hub-funnel-backend
+    ports:
+      - "8002:8000"
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/hubzeneger
+    networks:
+      - hubzeneger-net
+
+  # REDIS (Shared Cache & Queue)
+  redis:
+    image: redis:7-alpine
+    container_name: hub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hubzeneger-net
+    command: redis-server --save 60 1 --loglevel warning
+
+  # POSTGRES (Shared DB)
+  postgres:
+    image: postgres:15
+    container_name: hub-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: claw
+      POSTGRES_PASSWORD: claw123
+      POSTGRES_DB: hubzeneger
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hubzeneger-net
+
+networks:
+  hubzeneger-net:
+    driver: bridge
+
+volumes:
+  redis_data:
+  postgres_data:

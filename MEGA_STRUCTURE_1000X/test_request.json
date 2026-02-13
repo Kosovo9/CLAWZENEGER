@@ -1,0 +1,10 @@
+{
+    "model": "ollama-llama3",
+    "messages": [
+        {
+            "role": "user",
+            "content": "Hola, responde en una sola frase"
+        }
+    ],
+    "max_tokens": 50
+}

@@ -1,0 +1,67 @@
+
+version: '3.8'
+
+services:
+  # --- FUNNEL SYSTEM ---
+  funnel-backend:
+    build: ../funnel/backend
+    container_name: funnel-backend
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/clawfunnel
+      - REDIS_URL=redis://redis:6379/0
+      - HF_PROXY_URL=http://hf-proxy:8000
+    networks:
+      - clawzeneger-net
+
+  funnel-frontend:
+    build: ../funnel/frontend
+    container_name: funnel-frontend
+    ports:
+      - "3002:80"
+    networks:
+      - clawzeneger-net
+    depends_on:
+      - funnel-backend
+
+  # --- SCRAPER SYSTEM ---
+  scraper-worker:
+    build: ../scraper-system/backend
+    container_name: scraper-worker
+    command: celery -A app.tasks.youtube.celery worker --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/clawscraper
+    networks:
+      - clawzeneger-net
+    depends_on:
+      - redis
+      - postgres
+
+  scraper-api:
+    build: ../scraper-system/backend
+    container_name: scraper-api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://claw:claw123@postgres:5432/clawscraper
+    networks:
+      - clawzeneger-net
+
+  # --- AGENTS ---
+  market-researcher:
+    build:
+      context: .
+      dockerfile: agents/market_researcher/Dockerfile
+    container_name: claw-agent-market
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - clawzeneger-net
+
+networks:
+  clawzeneger-net:
+    external: true

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLAWZENEGER 10X · MANDO CENTRAL</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- HEADER: ESTADO DEL SISTEMA -->
+        <div class="header">
+            <div class="logo">
+                <span class="neon">CLAWZENEGER 10X</span>
+                <span class="version">v3.2.2026</span>
+            </div>
+            <div class="status-bar">
+                <div class="status-item online">🟢 GATEWAY ACTIVO</div>
+                <div class="status-item">🧠 MODELO: QWEN2.5-CODER</div>
+                <div class="status-item">⚡ SKILLS: <span id="skill-count">5/20</span></div>
+                <div class="status-item latency">📡 LATENCIA: <span id="latency">42</span>MS</div>
+            </div>
+        </div>
+
+        <!-- GRID PRINCIPAL -->
+        <div class="grid-container">
+            <!-- COLUMNA 1: CHAT DE MANDO -->
+            <div class="card chat-card">
+                <div class="card-header">
+                    <h3>🎮 MANDO CENTRAL</h3>
+                    <span class="badge">SESIÓN: NEIL_EMPIRE_2025</span>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message system">
+                        <span class="time">6:23:19 p.m.</span>
+                        <span class="text">Bienvenido, Neil. El sistema ClawZeneger 10X está en línea. ¿Qué ordenas hoy?</span>
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="command-input" placeholder="✍️ Escribe tu orden... (ej: 'busca 10 dentistas en Bogotá')">
+                    <button id="send-command">▶️</button>
+                </div>
+            </div>
+
+            <!-- COLUMNA 2: TAREAS ACTIVAS -->
+            <div class="card tasks-card">
+                <div class="card-header">
+                    <h3>🎯 TAREAS ACTIVAS</h3>
+                    <button class="refresh-btn" onclick="refreshTasks()">↻</button>
+                </div>
+                <div class="task-list" id="task-list">
+                    <div class="task completed">
+                        <span class="task-name">Scrapear dentistas Bogotá</span>
+                        <span class="task-meta">12 leads encontrados</span>
+                        <span class="task-status completed">COMPLETED</span>
+                    </div>
+                    <div class="task active">
+                        <span class="task-name">Generar demo web Dental Norte</span>
+                        <span class="task-meta">En proceso...</span>
+                        <span class="task-status active">ACTIVE</span>
+                    </div>
+                    <div class="task pending">
+                        <span class="task-name">Enviar WhatsApp seguimientos</span>
+                        <span class="task-meta">Programado para 14:00</span>
+                        <span class="task-status pending">PENDING</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMNA 3: SKILLS Y SISTEMAS -->
+            <div class="card skills-card">
+                <div class="card-header">
+                    <h3>🔧 SKILLS & SISTEMAS</h3>
+                </div>
+                <div class="skills-grid">
+                    <div class="skill-item online">
+                        <span class="skill-icon">🦾</span>
+                        <span class="skill-name">WSL</span>
+                        <span class="skill-status">ONLINE</span>
+                    </div>
+                    <div class="skill-item syncing">
+                        <span class="skill-icon">🔄</span>
+                        <span class="skill-name">N8N</span>
+                        <span class="skill-status">SYNCING</span>
+                    </div>
+                    <div class="skill-item online">
+                        <span class="skill-icon">🐳</span>
+                        <span class="skill-name">DOCKER</span>
+                        <span class="skill-status">4 CONTAINERS</span>
+                    </div>
+                </div>
+                <div class="skill-divider"></div>
+                <div class="installed-skills">
+                    <h4>⚔️ SKILLS ACTIVOS</h4>
+                    <ul id="skills-list">
+                        <li class="ready">✓ intent-detector-10x</li>
+                        <li class="ready">✓ objection-killer-10x</li>
+                        <li class="ready">✓ closer-10x</li>
+                        <li class="ready">✓ dentistas-latam-scout</li>
+                        <li class="ready">✓ relojes-latam-10x</li>
+                        <li class="pending">○ skyreels-video</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- COLUMNA 4: LEADS Y VENTAS -->
+            <div class="card leads-card">
+                <div class="card-header">
+                    <h3>💰 LEADS & VENTAS</h3>
+                    <span class="badge">HOY</span>
+                </div>
+                <div class="leads-stats">
+                    <div class="stat">
+                        <span class="stat-value" id="leads-today">23</span>
+                        <span class="stat-label">Leads</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="close-rate">31%</span>
+                        <span class="stat-label">Cierre</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="revenue-month">47,230</span>
+                        <span class="stat-label">USD/mes</span>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <h4>🚀 ACCIONES RÁPIDAS</h4>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="runSkill('dentistas-latam-scout', 'Bogotá')">
+                            🦷 Buscar dentistas
+                        </button>
+                        <button class="action-btn" onclick="runSkill('relojes-latam-10x', 'Lima')">
+                            ⌚ Cotizar reloj
+                        </button>
+                        <button class="action-btn" onclick="runSkill('skyreels-video')">
+                            🎬 Generar video
+                        </button>
+                        <button class="action-btn" onclick="openWhatsApp()">
+                            📤 WhatsApp directo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

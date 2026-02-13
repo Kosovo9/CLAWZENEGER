@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # 🕷️ SCRAPER API (CEREBRO)
+  scraper-backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clawzeneger-scraper-api
+    # image: clawzeneger/scraper-api:latest  <-- ELIMINADO PARA USAR LOCAL BUILD
+    ports:
+      - "8001:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - BROWSERLESS_URL=ws://scraper-browser:3000
+    depends_on:
+      - scraper-browser
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  # 👻 GHOST BROWSER (NAVEGADOR FANTASMA - OPENCLAW KILLER FEATURE)
+  scraper-browser:
+    image: browserless/chrome:latest
+    container_name: clawzeneger-ghost-browser
+    ports:
+      - "3002:3000"
+    environment:
+      - MAX_CONCURRENT_SESSIONS=10
+      - TOKEN=clawzeneger-secure-browser
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+  # 👷 WORKER (EL OBRERO)
+  scraper-worker:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clawzeneger-scraper-worker
+    command: celery -A app.worker worker --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - BROWSERLESS_URL=ws://scraper-browser:3000
+    depends_on:
+      - scraper-backend
+      - scraper-browser
+    networks:
+      - clawzeneger-net
+    restart: unless-stopped
+
+networks:
+  clawzeneger-net:
+    external: true
