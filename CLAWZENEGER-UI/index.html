@@ -1,149 +1,787 @@
 <!DOCTYPE html>
-<html lang="es-MX">
+<html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CLAWZENEGER 10X · MANDO CENTRAL</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>CLAWZENEGER | Executive Command</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-master: #09090b;
+            --bg-card: #141417;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-primary: #ffffff;
+            --accent-secondary: #71717a;
+            --status-green: #10b981;
+            --error-red: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-master);
+            color: #d4d4d8;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .premium-sidebar {
+            width: 280px;
+            background: #000000;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            margin: 4px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--accent-secondary);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #3f3f46;
+            margin: 24px 28px 8px;
+            font-weight: 700;
+        }
+
+        .main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: radial-gradient(circle at 50% 0%, #18181b 0%, #09090b 100%);
+        }
+
+        .top-bar {
+            height: 64px;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(9, 9, 11, 0.8);
+            backdrop-filter: blur(12px);
+        }
+
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+        }
+
+        .grid-dashboard {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+
+        .panel-real {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: border 0.3s;
+        }
+
+        .panel-real:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .mono {
+            font-family: 'JetBrains+Mono', monospace;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--accent-secondary);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            margin-top: 4px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-premium {
+            background: #fff;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-premium:hover {
+            opacity: 0.9;
+        }
+
+        .iframe-stage {
+            flex: 1;
+            width: 100%;
+            border: none;
+            display: none;
+        }
+
+        .iframe-stage.active {
+            display: block;
+        }
+
+        /* Leads Table Modern */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--accent-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+    </style>
 </head>
+
 <body>
-    <div class="dashboard">
-        <!-- HEADER: ESTADO DEL SISTEMA -->
-        <div class="header">
-            <div class="logo">
-                <span class="neon">CLAWZENEGER 10X</span>
-                <span class="version">v3.2.2026</span>
-            </div>
-            <div class="status-bar">
-                <div class="status-item online">🟢 GATEWAY ACTIVO</div>
-                <div class="status-item">🧠 MODELO: QWEN2.5-CODER</div>
-                <div class="status-item">⚡ SKILLS: <span id="skill-count">5/20</span></div>
-                <div class="status-item latency">📡 LATENCIA: <span id="latency">42</span>MS</div>
+
+    <!-- SIDEBAR -->
+    <aside class="premium-sidebar">
+        <div class="p-8">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
+                    <i class="fas fa-bolt text-black text-sm"></i>
+                </div>
+                <h1 class="text-white font-bold tracking-tight text-lg">CLAWZENEGER</h1>
             </div>
         </div>
 
-        <!-- GRID PRINCIPAL -->
-        <div class="grid-container">
-            <!-- COLUMNA 1: CHAT DE MANDO -->
-            <div class="card chat-card">
-                <div class="card-header">
-                    <h3>🎮 MANDO CENTRAL</h3>
-                    <span class="badge">SESIÓN: NEIL_EMPIRE_2025</span>
-                </div>
-                <div class="chat-messages" id="chat-messages">
-                    <div class="message system">
-                        <span class="time">6:23:19 p.m.</span>
-                        <span class="text">Bienvenido, Neil. El sistema ClawZeneger 10X está en línea. ¿Qué ordenas hoy?</span>
-                    </div>
-                </div>
-                <div class="chat-input">
-                    <input type="text" id="command-input" placeholder="✍️ Escribe tu orden... (ej: 'busca 10 dentistas en Bogotá')">
-                    <button id="send-command">▶️</button>
-                </div>
+        <nav class="flex-1">
+            <div class="nav-section-title">Core Intelligence</div>
+            <div id="nav-dash" class="nav-link active" onclick="setView('dash')">
+                <i class="fas fa-layer-group"></i> Executive Overview
+            </div>
+            <div id="nav-gm" class="nav-link" onclick="setView('gm')">
+                <i class="fas fa-crown text-amber-500"></i> Clawzenegger GM
+            </div>
+            <div id="nav-neil" class="nav-link" onclick="setView('neil')">
+                <i class="fas fa-comment-dots"></i> NeilZenneger Chat
+            </div>
+            <div id="nav-openwebui" class="nav-link" onclick="setView('openwebui')">
+                <i class="fas fa-brain"></i> OpenWebUI Node
             </div>
 
-            <!-- COLUMNA 2: TAREAS ACTIVAS -->
-            <div class="card tasks-card">
-                <div class="card-header">
-                    <h3>🎯 TAREAS ACTIVAS</h3>
-                    <button class="refresh-btn" onclick="refreshTasks()">↻</button>
-                </div>
-                <div class="task-list" id="task-list">
-                    <div class="task completed">
-                        <span class="task-name">Scrapear dentistas Bogotá</span>
-                        <span class="task-meta">12 leads encontrados</span>
-                        <span class="task-status completed">COMPLETED</span>
-                    </div>
-                    <div class="task active">
-                        <span class="task-name">Generar demo web Dental Norte</span>
-                        <span class="task-meta">En proceso...</span>
-                        <span class="task-status active">ACTIVE</span>
-                    </div>
-                    <div class="task pending">
-                        <span class="task-name">Enviar WhatsApp seguimientos</span>
-                        <span class="task-meta">Programado para 14:00</span>
-                        <span class="task-status pending">PENDING</span>
-                    </div>
-                </div>
+            <div class="nav-section-title">Operations & Data</div>
+            <div id="nav-leads" class="nav-link" onclick="setView('leads')">
+                <i class="fas fa-users"></i> Lead Database <span
+                    class="ml-auto text-[10px] bg-white/10 px-1.5 py-0.5 rounded">Real TIme</span>
+            </div>
+            <div id="nav-scrapers" class="nav-link" onclick="setView('scrapers')">
+                <i class="fas fa-spider"></i> Web Scrapers
+            </div>
+            <div id="nav-wa" class="nav-link" onclick="setView('wa')">
+                <i class="fab fa-whatsapp"></i> WhatsApp Hub
+            </div>
+            <div id="nav-n8n" class="nav-link" onclick="setView('n8n')">
+                <i class="fas fa-code-branch"></i> Workflows
             </div>
 
-            <!-- COLUMNA 3: SKILLS Y SISTEMAS -->
-            <div class="card skills-card">
-                <div class="card-header">
-                    <h3>🔧 SKILLS & SISTEMAS</h3>
-                </div>
-                <div class="skills-grid">
-                    <div class="skill-item online">
-                        <span class="skill-icon">🦾</span>
-                        <span class="skill-name">WSL</span>
-                        <span class="skill-status">ONLINE</span>
-                    </div>
-                    <div class="skill-item syncing">
-                        <span class="skill-icon">🔄</span>
-                        <span class="skill-name">N8N</span>
-                        <span class="skill-status">SYNCING</span>
-                    </div>
-                    <div class="skill-item online">
-                        <span class="skill-icon">🐳</span>
-                        <span class="skill-name">DOCKER</span>
-                        <span class="skill-status">4 CONTAINERS</span>
-                    </div>
-                </div>
-                <div class="skill-divider"></div>
-                <div class="installed-skills">
-                    <h4>⚔️ SKILLS ACTIVOS</h4>
-                    <ul id="skills-list">
-                        <li class="ready">✓ intent-detector-10x</li>
-                        <li class="ready">✓ objection-killer-10x</li>
-                        <li class="ready">✓ closer-10x</li>
-                        <li class="ready">✓ dentistas-latam-scout</li>
-                        <li class="ready">✓ relojes-latam-10x</li>
-                        <li class="pending">○ skyreels-video</li>
-                    </ul>
-                </div>
+            <div class="nav-section-title">Settings</div>
+            <div id="nav-yt" class="nav-link" onclick="setView('yt')">
+                <i class="fab fa-youtube"></i> YT Intelligence
+            </div>
+            <div id="nav-gateway" class="nav-link" onclick="setView('gateway')">
+                <i class="fas fa-server"></i> System Gateway
             </div>
 
-            <!-- COLUMNA 4: LEADS Y VENTAS -->
-            <div class="card leads-card">
-                <div class="card-header">
-                    <h3>💰 LEADS & VENTAS</h3>
-                    <span class="badge">HOY</span>
+            <div class="nav-section-title">Bunker Master Access</div>
+            <div id="nav-neil-new" class="nav-link" onclick="setView('neil')">
+                <i class="fas fa-terminal text-emerald-500"></i> Neil Chat (3000)
+            </div>
+            <div id="nav-api-docs" class="nav-link" onclick="setView('api')">
+                <i class="fas fa-book-medical text-blue-500"></i> API Docs (Swagger)
+            </div>
+            <div id="nav-grafana-new" class="nav-link" onclick="setView('grafana')">
+                <i class="fas fa-chart-line text-orange-500"></i> Master Monitoring
+            </div>
+        </nav>
+
+        <div class="p-6 border-t border-white/5 mx-3 mt-auto mb-6 bg-white/5 rounded-xl">
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-[10px] font-bold text-zinc-500 uppercase">System Integrity</span>
+                <span class="text-[10px] font-bold text-emerald-500 uppercase">99.9%</span>
+            </div>
+            <div class="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                <div class="h-full bg-white w-[99.9%]"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-stage">
+        <header class="top-bar">
+            <div>
+                <h2 id="view-title" class="text-white font-semibold text-sm">Executive Overview</h2>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-4 text-xs font-medium">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Ollama: Online
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        XTTS: Ready
+                    </div>
                 </div>
-                <div class="leads-stats">
-                    <div class="stat">
-                        <span class="stat-value" id="leads-today">23</span>
-                        <span class="stat-label">Leads</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-value" id="close-rate">31%</span>
-                        <span class="stat-label">Cierre</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-value" id="revenue-month">47,230</span>
-                        <span class="stat-label">USD/mes</span>
+                <div class="h-4 w-[1px] bg-white/10"></div>
+                <button class="text-zinc-400 hover:text-white transition-colors">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center border border-white/5">
+                    <span class="text-[10px] font-bold text-white">RZ</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="stage-dash" class="content-scroll">
+            <div class="grid-dashboard">
+                <!-- STATS -->
+                <div class="col-span-12 md:col-span-3 panel-real">
+                    <div class="stat-label uppercase tracking-widest text-[10px]">Activated Skills</div>
+                    <div class="stat-value">235+</div>
+                    <div class="text-[11px] text-emerald-400 font-bold mt-2">Loaded from MEGA_STRUCTURE</div>
+                </div>
+                <div class="col-span-12 md:col-span-3 panel-real">
+                    <div class="stat-label uppercase tracking-widest text-[10px]">Active Agents</div>
+                    <div class="stat-value">84</div>
+                    <div class="text-[11px] text-emerald-400 font-bold mt-2">Orchestrator Verified</div>
+                </div>
+                <div class="col-span-12 md:col-span-3 panel-real">
+                    <div class="stat-label uppercase tracking-widest text-[10px]">RAG Vector Cache</div>
+                    <div class="stat-value">1.2 TB</div>
+                    <div class="text-[11px] text-emerald-400 font-bold mt-2">ChromaDB Persistent</div>
+                </div>
+                <div class="col-span-12 md:col-span-3 panel-real">
+                    <div class="stat-label uppercase tracking-widest text-[10px]">Project Status</div>
+                    <div class="stat-value">99%</div>
+                    <div class="text-[11px] text-emerald-400 font-bold mt-2">Consolidation Phase</div>
+                </div>
+
+                <!-- PAYMENTS & MEMORY -->
+                <div class="col-span-12 lg:col-span-4 panel-real">
+                    <h3 class="text-white font-bold text-lg mb-6">Payment Gateways (Verified)</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                            <span class="text-xs font-bold text-zinc-400"><i class="fab fa-paypal mr-2"></i> PayPal
+                                (LIVE)</span>
+                            <span class="text-[10px] text-emerald-500 font-bold uppercase">Active</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                            <span class="text-xs font-bold text-zinc-400"><i class="fas fa-hand-holding-usd mr-2"></i>
+                                Mercado Pago</span>
+                            <span class="text-[10px] text-emerald-500 font-bold uppercase">Ready</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+                            <span class="text-xs font-bold text-zinc-400"><i class="fas fa-university mr-2"></i> HSBC
+                                (Transfer)</span>
+                            <span class="text-[10px] text-emerald-500 font-bold uppercase">Confirmed</span>
+                        </div>
                     </div>
                 </div>
-                <div class="quick-actions">
-                    <h4>🚀 ACCIONES RÁPIDAS</h4>
-                    <div class="action-buttons">
-                        <button class="action-btn" onclick="runSkill('dentistas-latam-scout', 'Bogotá')">
-                            🦷 Buscar dentistas
-                        </button>
-                        <button class="action-btn" onclick="runSkill('relojes-latam-10x', 'Lima')">
-                            ⌚ Cotizar reloj
-                        </button>
-                        <button class="action-btn" onclick="runSkill('skyreels-video')">
-                            🎬 Generar video
-                        </button>
-                        <button class="action-btn" onclick="openWhatsApp()">
-                            📤 WhatsApp directo
-                        </button>
+
+                <div class="col-span-12 lg:col-span-8 panel-real">
+                    <h3 class="text-white font-bold text-lg mb-4">Deep Knowledge Recall (Session 8:00am - 10:30am)</h3>
+                    <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
+                        <p class="text-xs text-emerald-400 italic mb-2">Memory Scan Status: SUCCESS</p>
+                        <ul class="text-[11px] text-zinc-400 space-y-2 list-disc ml-4">
+                            <li>Audit of 15,000+ code lines from AI-SaaS (C:\AI-SaaS) completed.</li>
+                            <li>Consolidation of 70+ agents from RELOADED phase verified.</li>
+                            <li>Integration of NexusBot-Pro.ps1 management system active.</li>
+                            <li>Bunker Mode / Local-First architecture enforced in all environments.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- REAL OPPORTUNITIES -->
+                <div class="col-span-12 lg:col-span-8 panel-real">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-white font-bold text-lg">Real-Time Opportunities</h3>
+                        <button onclick="loadOpportunities()"
+                            class="text-xs font-bold text-zinc-500 hover:text-white uppercase tracking-widest">Refresh
+                            Feed</button>
+                    </div>
+                    <div id="real-opportunities" class="space-y-4">
+                        <div class="animate-pulse text-zinc-500 text-sm">Infiltrating data nodes...</div>
+                    </div>
+                </div>
+
+                <!-- QUICK ACTIONS -->
+                <div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+                    <div class="panel-real h-full">
+                        <h3 class="text-white font-bold text-lg mb-6">Master Control</h3>
+                        <div class="space-y-3">
+                            <button class="w-full bg-white text-black py-3 rounded-lg font-bold text-sm shadow-xl"
+                                onclick="setView('neil')">COMMAND NEILZENNEGER</button>
+                            <button
+                                class="w-full bg-zinc-800 text-white py-3 rounded-lg font-bold text-sm border border-white/5"
+                                onclick="setView('leads')">AUDIT LEAD DATABASE</button>
+                            <button
+                                class="w-full bg-zinc-800 text-white py-3 rounded-lg font-bold text-sm border border-white/5"
+                                onclick="setView('wa')">INITIATE WA OUTREACH</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MASTER ACCESS PANEL -->
+                <div class="col-span-12 panel-real">
+                    <h3 class="text-white font-bold text-lg mb-6"><i class="fas fa-key mr-2 text-emerald-500"></i>
+                        Bunker Master Access (Joanna 3000X)</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer group"
+                            onclick="setView('neil')">
+                            <i
+                                class="fas fa-terminal text-2xl mb-3 text-emerald-500 group-hover:scale-110 transition-transform"></i>
+                            <div class="text-xs font-bold text-white">Neil Chat</div>
+                            <div class="text-[10px] text-zinc-500 mt-1">Direct Brain Access</div>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-blue-500/30 transition-all cursor-pointer group"
+                            onclick="setView('api')">
+                            <i
+                                class="fas fa-book-medical text-2xl mb-3 text-blue-500 group-hover:scale-110 transition-transform"></i>
+                            <div class="text-xs font-bold text-white">API Docs</div>
+                            <div class="text-[10px] text-zinc-500 mt-1">Swagger Interface</div>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-orange-500/30 transition-all cursor-pointer group"
+                            onclick="setView('grafana')">
+                            <i
+                                class="fas fa-chart-line text-2xl mb-3 text-orange-500 group-hover:scale-110 transition-transform"></i>
+                            <div class="text-xs font-bold text-white">Monitoring</div>
+                            <div class="text-[10px] text-zinc-500 mt-1">Grafana Metrics</div>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-indigo-500/30 transition-all cursor-pointer group"
+                            onclick="setView('n8n')">
+                            <i
+                                class="fas fa-code-branch text-2xl mb-3 text-indigo-500 group-hover:scale-110 transition-transform"></i>
+                            <div class="text-xs font-bold text-white">Workflows</div>
+                            <div class="text-[10px] text-zinc-500 mt-1">n8n Automation</div>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer group"
+                            onclick="setView('wa')">
+                            <i
+                                class="fab fa-whatsapp text-2xl mb-3 text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                            <div class="text-xs font-bold text-white">WhatsApp</div>
+                            <div class="text-[10px] text-zinc-500 mt-1">Evolution API</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <script src="app.js"></script>
+
+        <!-- LEADS VIEW -->
+        <!-- GM CHAT VIEW -->
+        <div id="stage-gm" class="content-scroll hidden">
+            <div class="flex flex-col h-full max-w-4xl mx-auto">
+                <div
+                    class="panel-real flex-1 flex flex-col mb-4 overflow-hidden bg-black/60 backdrop-blur-xl border-amber-500/20">
+                    <div class="p-4 border-b border-white/5 flex justify-between items-center bg-amber-500/5">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-black">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-white font-bold text-sm">Clawzenegger: General Manager</h3>
+                                <p class="text-[10px] text-amber-500/70 font-bold uppercase tracking-widest">Global
+                                    Authority / Meta-Execution</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span
+                                class="status-pill text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/20">VOICE:
+                                READY</span>
+                            <div class="h-4 w-[1px] bg-white/10"></div>
+                            <button onclick="clearGMChat()" class="text-zinc-500 hover:text-white transition-colors"><i
+                                    class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Container -->
+                    <div id="gm-chat-history" class="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+                        <div class="chat-msg ai">
+                            <div class="flex gap-4">
+                                <div
+                                    class="w-8 h-8 rounded-lg bg-zinc-800 flex-shrink-0 flex items-center justify-center border border-white/10">
+                                    <i class="fas fa-robot text-xs text-amber-500"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                                        Clawzenegger GM</div>
+                                    <div
+                                        class="p-4 bg-zinc-900/50 rounded-2xl rounded-tl-none border border-white/5 text-sm text-zinc-300 leading-relaxed">
+                                        Partner, el búnker operativo está al 100%. Soy tu brazo derecho estratégico.
+                                        ¿Qué cambios estructurales o misiones de ataque ejecutamos hoy?
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="p-6 bg-black/40 border-t border-white/5">
+                        <div class="flex gap-4 items-center">
+                            <button id="gm-voice-btn" onclick="toggleVoiceInput('gm')"
+                                class="w-12 h-12 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <input type="text" id="gm-input" onkeypress="if(event.key==='Enter') sendGMMessage()"
+                                placeholder="Ordena a Clawzenegger..."
+                                class="flex-1 bg-zinc-900/50 border border-white/5 p-4 rounded-xl text-white text-sm focus:border-amber-500/30 focus:outline-none transition-all">
+                            <button onclick="sendGMMessage()"
+                                class="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:bg-zinc-200 transition-all">
+                                <i class="fas fa-paper-plane text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="stage-leads" class="content-scroll hidden">
+            <div class="panel-real">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-white font-bold text-xl">Operational Lead Database</h3>
+                    <div class="flex gap-4">
+                        <div class="px-4 py-2 bg-white/5 rounded-lg border border-white/5 text-xs">
+                            Total: <span id="total-leads-count" class="text-white">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="leads-table">
+                        <thead>
+                            <tr>
+                                <th>Entity Name</th>
+                                <th>Niche</th>
+                                <th>Status</th>
+                                <th>Location</th>
+                                <th>Value</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- YT VIEW -->
+        <div id="stage-yt" class="content-scroll hidden">
+            <div class="panel-real">
+                <h3 class="text-white font-bold text-xl mb-6">YouTube Knowledge Extractor (1000x)</h3>
+                <div class="flex gap-4 mb-8">
+                    <input type="text" id="yt-url" placeholder="Paste YouTube URL here..."
+                        class="flex-1 bg-black/40 border border-white/10 p-3 rounded-lg text-white font-mono text-sm focus:border-white/30 outline-none">
+                    <button onclick="startExtraction()"
+                        class="bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-zinc-200">INFILTRATE &
+                        EXTRACT</button>
+                </div>
+                <div id="yt-status"
+                    class="hidden p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-xs mb-8">
+                    <i class="fas fa-cog fa-spin mr-2"></i> Initializing Neural Link...
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="panel-real border-white/5 bg-white/2">
+                        <h4 class="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Executive Summary
+                        </h4>
+                        <div id="yt-summary" class="text-zinc-400 text-sm leading-relaxed italic">Awaiting data
+                            infiltration...</div>
+                    </div>
+                    <div class="panel-real border-white/5 bg-white/2">
+                        <h4 class="text-zinc-500 text-[10px] uppercase font-bold tracking-widest mb-4">Technical
+                            Extraction</h4>
+                        <div id="yt-code" class="text-zinc-400 text-sm font-mono opacity-50"># NO_CODE_DETECTED_YET
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IFRAME VIEWS -->
+        <iframe id="view-neil" class="iframe-stage" src="http://localhost:3000"></iframe>
+        <iframe id="view-openwebui" class="iframe-stage" src="http://localhost:3000"></iframe>
+        <iframe id="view-scrapers" class="iframe-stage" src="http://localhost:8001"></iframe>
+        <iframe id="view-wa" class="iframe-stage" src="http://localhost:8080"></iframe> <!-- Evolution API -->
+        <iframe id="view-n8n" class="iframe-stage" src="http://localhost:5678"></iframe>
+        <iframe id="view-gateway" class="iframe-stage" src="http://localhost:18789"></iframe>
+        <iframe id="view-api" class="iframe-stage" src="http://localhost:8000/docs"></iframe>
+        <iframe id="view-grafana" class="iframe-stage" src="http://localhost:3001"></iframe>
+
+    </main>
+
+    <script>
+        const views = ['dash', 'gm', 'neil', 'openwebui', 'leads', 'scrapers', 'wa', 'n8n', 'gateway', 'yt', 'api', 'grafana'];
+        let gmHistory = [{ role: 'ai', content: 'Partner, el búnker operativo está al 100%. Soy el Clawzenegger Bot, tu Gerente Principal. ¿Qué cambios estructurales o misiones de ataque ejecutamos hoy?' }];
+
+        function setView(viewId) {
+            // Update Sidebar
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            if (document.getElementById('nav-' + viewId)) document.getElementById('nav-' + viewId).classList.add('active');
+
+            // Handle potential aliases for neil/openwebui
+            if (viewId === 'neil' || viewId === 'openwebui') {
+                if (document.getElementById('nav-neil')) document.getElementById('nav-neil').classList.add('active');
+                if (document.getElementById('nav-openwebui')) document.getElementById('nav-openwebui').classList.add('active');
+            }
+
+            // Update Header
+            const titleMap = {
+                'dash': 'Executive Overview',
+                'gm': 'Clawzenegger: General Manager / OS Core',
+                'neil': 'NeilZenneger Strategic Chat',
+                'openwebui': 'Omni-Brain Interface',
+                'leads': 'Master Lead Records',
+                'scrapers': 'Ghost Scraper Node',
+                'wa': 'WhatsApp Communications Hub',
+                'n8n': 'Process Automations',
+                'gateway': 'System Core Gateway',
+                'yt': 'YouTube Intelligence Extractor',
+                'api': 'API Reference & Documentation',
+                'grafana': 'Master System Monitoring'
+            };
+            document.getElementById('view-title').innerText = titleMap[viewId] || 'Command Center';
+
+            // Show Content
+            document.getElementById('stage-dash').classList.add('hidden');
+            document.getElementById('stage-leads').classList.add('hidden');
+            document.getElementById('stage-yt').classList.add('hidden');
+            document.getElementById('stage-gm').classList.add('hidden');
+            document.querySelectorAll('.iframe-stage').forEach(f => f.classList.remove('active'));
+
+            if (viewId === 'dash') {
+                document.getElementById('stage-dash').classList.remove('hidden');
+            } else if (viewId === 'leads') {
+                document.getElementById('stage-leads').classList.remove('hidden');
+                loadLeads();
+            } else if (viewId === 'yt') {
+                document.getElementById('stage-yt').classList.remove('hidden');
+            } else if (viewId === 'gm') {
+                document.getElementById('stage-gm').classList.remove('hidden');
+            } else {
+                if (document.getElementById('view-' + viewId)) document.getElementById('view-' + viewId).classList.add('active');
+            }
+        }
+
+        async function sendGMMessage() {
+            const input = document.getElementById('gm-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            appendMsg('user', msg, 'gm-chat-history');
+            input.value = '';
+            gmHistory.push({ role: 'user', content: msg });
+
+            try {
+                const response = await fetch('http://localhost:54321/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        msg: msg,
+                        mode: 'clawzeneger',
+                        history: gmHistory
+                    })
+                });
+                const data = await response.json();
+                const aiMsg = data.response;
+
+                appendMsg('ai', aiMsg, 'gm-chat-history');
+                gmHistory.push({ role: 'ai', content: aiMsg });
+                speak(aiMsg);
+            } catch (e) {
+                appendMsg('ai', "🚨 Error de enlace. El búnker está en modo offline.", 'gm-chat-history');
+            }
+        }
+
+        function appendMsg(role, text, containerId) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `chat-msg ${role}`;
+            const icon = role === 'user' ? 'fa-user' : 'fa-crown';
+            const iconColor = role === 'user' ? 'text-zinc-600' : 'text-amber-500';
+            const name = role === 'user' ? 'Operator' : 'Clawzenegger GM';
+
+            div.innerHTML = `
+                <div class="flex gap-4">
+                    <div class="w-8 h-8 rounded-lg bg-zinc-800 flex-shrink-0 flex items-center justify-center border border-white/10">
+                        <i class="fas ${icon} text-xs ${iconColor}"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">${name}</div>
+                        <div class="p-4 bg-zinc-900/50 rounded-2xl rounded-tl-none border border-white/5 text-sm text-zinc-300 leading-relaxed">
+                            ${text}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function speak(text) {
+            try {
+                // Use XTTS v2 directly or via orchestrator proxy
+                const response = await fetch('http://localhost:5002/api/tts?text=' + encodeURIComponent(text) + '&speaker_id=Abrahan%20Mack&language_id=es');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    new Audio(url).play();
+                }
+            } catch (e) { console.warn("TTS Service Unavailable"); }
+        }
+
+        async function loadLeads() {
+            try {
+                const response = await fetch('/leads_db.json');
+                const leads = await response.json();
+                const container = document.getElementById('leads-body');
+                container.innerHTML = '';
+
+                document.getElementById('total-leads-count').innerText = leads.length;
+
+                leads.forEach(lead => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="font-bold text-white">${lead.name}</td>
+                        <td class="text-zinc-400 font-medium">${lead.niche}</td>
+                        <td><span class="status-pill text-[10px]">${lead.status}</span></td>
+                        <td class="text-zinc-500">${lead.zone}</td>
+                        <td class="font-mono text-emerald-400">${lead.value}</td>
+                        <td><button class="px-4 py-1.5 bg-zinc-800 text-[10px] font-bold rounded hover:bg-white hover:text-black transition-all">DEPLOY AGENT</button></td>
+                    `;
+                    container.appendChild(tr);
+                });
+            } catch (e) { }
+        }
+
+        async function loadOpportunities() {
+            try {
+                const response = await fetch('/opportunities.json');
+                const data = await response.json();
+                const container = document.getElementById('real-opportunities');
+                container.innerHTML = '';
+
+                data.content.forEach(op => {
+                    const div = document.createElement('div');
+                    div.className = 'p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all';
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="text-white font-bold text-sm">${op.concept}</h4>
+                                <p class="text-[11px] text-zinc-500 mt-0.5">${op.target_audience}</p>
+                            </div>
+                            <span class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">Potential ARR: ${op.potential_arr}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${op.action_plan.map(step => `<span class="text-[9px] px-2 py-1 bg-zinc-900 rounded-md border border-white/5 text-zinc-400 font-mono">${step}</span>`).join('')}
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) { }
+        }
+
+        async function startExtraction() {
+            const url = document.getElementById('yt-url').value;
+            if (!url) return;
+            const status = document.getElementById('yt-status');
+            status.classList.remove('hidden');
+            try {
+                const response = await fetch('http://localhost:54321/agent/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'yt_extract', target: url })
+                });
+                status.innerText = "✅ Infiltration Success: Analyzing Video Content...";
+                document.getElementById('yt-summary').innerText = "Analyzing neural patterns of the video... (This takes ~30s)";
+                document.getElementById('yt-code').innerText = "# SCANNING_FOR_CODE_BLOCKS...";
+            } catch (e) {
+                status.innerText = "❌ Neural Link Error.";
+            }
+        }
+
+        setInterval(loadOpportunities, 10000);
+        setInterval(loadLeads, 10000);
+
+        window.onload = () => {
+            loadLeads();
+            loadOpportunities();
+            setTimeout(() => { document.getElementById('view-title').innerText = "Executive Overview [RAG LOADED]"; }, 3000);
+        };
+    </script>
 </body>
+
 </html>
