@@ -710,89 +710,124 @@ export default function App() {
 
     refreshData();
     const interval = setInterval(refreshData, 10000); // Auto-refresh cada 10s
+    return () => clearInterval(interval);
+  }, []);
 
-    const ws = new WebSocket(WS_JOANNA);
-    ws.onopen = () => {
-      console.log('🔴 GATEWAY CONNECTED');
-      setMessages(prev => [...prev, { text: "🔥 ¡Hola socio! Soy Joanna, tu ejecutiva personal. Conectando con los sistemas de ClawZeneger... 🚀", isUser: false, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    };
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
-        if (data.type === 'partial_response') {
-          // STREAMING: Actualizar el último mensaje si es de Joanna
-          setIsProcessing(false);
-          setMessages(prev => {
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg && !lastMsg.isUser && !lastMsg.isFinal) {
-              const newMessages = [...prev];
-              newMessages[newMessages.length - 1] = {
-                ...lastMsg,
-                text: lastMsg.text + data.text
-              };
-              return newMessages;
-            } else {
-              return [...prev, {
+  useEffect(() => {
+    let ws;
+    let reconnectTimer;
+
+    const connect = () => {
+      ws = new WebSocket(WS_JOANNA);
+
+      ws.onopen = () => {
+        console.log('✅ GATEWAY CONNECTED');
+        setReconnectAttempts(0);
+        setSocket(ws);
+        // No agregamos el saludo aquí si el backend ya lo envía al conectar
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong' }));
+            return;
+          }
+
+          if (data.type === 'status') {
+            // Podríamos mostrar un indicador de carga específico
+            setIsProcessing(true);
+            return;
+          }
+
+          if (data.type === 'partial_response') {
+            setIsProcessing(false);
+            setMessages(prev => {
+              const lastMsg = prev[prev.length - 1];
+              if (lastMsg && !lastMsg.isUser && !lastMsg.isFinal) {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = {
+                  ...lastMsg,
+                  text: lastMsg.text + data.text
+                };
+                return newMessages;
+              } else {
+                return [...prev, {
+                  text: data.text,
+                  isUser: false,
+                  isFinal: false,
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }];
+              }
+            });
+          }
+          else if (data.type === 'response') {
+            setIsProcessing(false);
+            setMessages(prev => {
+              const lastMsg = prev[prev.length - 1];
+              const updatedMsg = {
                 text: data.text,
                 isUser: false,
-                isFinal: false,
+                isFinal: true,
+                acciones: data.acciones || [],
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              }];
-            }
-          });
-        }
-        else if (data.type === 'response') {
-          setIsProcessing(false);
-          setMessages(prev => {
-            // Reemplazar el mensaje parcial con el final si existe, o añadir nuevo
-            const lastMsg = prev[prev.length - 1];
-            const updatedMsg = {
-              text: data.text,
-              isUser: false,
-              isFinal: true,
-              acciones: data.acciones || [],
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
+              };
 
-            if (lastMsg && !lastMsg.isUser && !lastMsg.isFinal) {
-              const newMessages = [...prev];
-              newMessages[newMessages.length - 1] = updatedMsg;
-              return newMessages;
-            }
-            return [...prev, updatedMsg];
-          });
-
-          // REPRODUCIR AUDIO SI VIENE INCLUIDO
-          if (data.audio) {
-            const audio = new Audio("data:audio/wav;base64," + data.audio);
+              if (lastMsg && !lastMsg.isUser && !lastMsg.isFinal) {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = updatedMsg;
+                return newMessages;
+              }
+              return [...prev, updatedMsg];
+            });
+          }
+          else if (data.type === 'audio') {
+            const audio = new Audio("data:audio/wav;base64," + data.data);
             audio.volume = window.currentVolume / 100 || 0.8;
-            audio.play().catch(e => console.error("Error playing response audio:", e));
+            audio.play().catch(e => console.error("Error playing audio:", e));
           }
+          else if (data.type === 'transcribed') {
+            // Mostrar lo que se entendió
+            setMessages(prev => [...prev, {
+              text: data.content,
+              isUser: true,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }]);
+          }
+        } catch (e) {
+          console.error('Error parsing message:', e);
+        }
+      };
 
-          if (data.acciones && data.acciones.length > 0) {
-            console.log("🔥 Joanna ha solicitado misiones tácticas:", data.acciones);
-          }
-        }
-        else if (data.type === 'audio') {
-          // REPRODUCIR AUDIO REIBIDO
-          const audio = new Audio("data:audio/wav;base64," + data.data);
-          // Obtener el volumen actual desde el estado (necesitamos acceder al valor actual)
-          // Usaremos una referencia para el volumen para que el callback del socket lo vea siempre actualizado
-          audio.volume = window.currentVolume / 100 || 0.8;
-          audio.play().catch(e => console.error("Error playing audio:", e));
-        }
-      } catch (e) {
-        console.error('Error parsing message:', e);
-      }
+      ws.onclose = () => {
+        console.warn('❌ GATEWAY DISCONNECTED. Reconnecting...');
+        setSocket(null);
+        setIsProcessing(false);
+
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        reconnectTimer = setTimeout(() => {
+          setReconnectAttempts(prev => prev + 1);
+          connect();
+        }, delay);
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket Error:', err);
+        ws.close();
+      };
     };
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setIsProcessing(false);
+
+    connect();
+
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
     };
-    setSocket(ws);
-    return () => ws.close();
-  }, []);
+  }, [reconnectAttempts]);
 
   // Referencia para el volumen para que el closure del useEffect lo vea
   const [volume, setVolume] = useState(80);

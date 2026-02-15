@@ -13,6 +13,8 @@ services:
       - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
     deploy:
       resources:
         reservations:
@@ -43,7 +45,7 @@ services:
     image: redis:7-alpine
     container_name: claw-cache-redis
     restart: always
-    command: redis-server --requirepass Pataya@77/
+    command: redis-server --requirepass clawzeneger2026prod
     ports:
       - "6379:6379"
     volumes:
@@ -154,6 +156,8 @@ services:
     image: onerahmet/openai-whisper-asr-webservice:latest
     container_name: claw-ears-whisper
     restart: always
+    ports:
+      - "9000:9000"
     environment:
       - ASR_MODEL=base
       - ASR_ENGINE=openai_whisper
@@ -178,6 +182,8 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    ports:
+      - "5002:5002"
     networks:
       - clawzeneger-net
 

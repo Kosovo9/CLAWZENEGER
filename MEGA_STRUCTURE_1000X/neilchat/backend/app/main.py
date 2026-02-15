@@ -22,6 +22,8 @@ from .rag.rag_system import rag_system
 from .middleware.auth import JWTAuthMiddleware
 from .middleware.ratelimit import RateLimitMiddleware
 from .voice.voice_manager import voice_manager
+from .voice.stt_service import stt_service
+from .memory.joanna_eterna import joanna_eterna
 from prometheus_fastapi_instrumentator import Instrumentator
 
 # === CONFIGURACIÓN DE ÉLITE (SYNAPTIC ARCHITECT) ===
@@ -56,8 +58,10 @@ app.add_middleware(
 )
 
 # Inyectar Perímetro de Seguridad (Upgrade 3000%)
+import urllib.parse
 JWT_SECRET = os.getenv("JWT_SECRET_KEY", "claw-default-secret")
-REDIS_URL = f"redis://:{os.getenv('REDIS_PASSWORD', 'Pataya@77/')}@{REDIS_HOST}:6379/0"
+REDIS_PWD = urllib.parse.quote(os.getenv('REDIS_PASSWORD', 'clawzeneger2026prod'))
+REDIS_URL = f"redis://:{REDIS_PWD}@{REDIS_HOST}:6379/0"
 
 app.add_middleware(JWTAuthMiddleware, secret_key=JWT_SECRET)
 app.add_middleware(RateLimitMiddleware, redis_url=REDIS_URL, limit=100, window=60)
@@ -69,12 +73,12 @@ Instrumentator().instrument(app).expose(app)
 r = redis.Redis(
     host=REDIS_HOST,
     port=6379,
-    password=os.getenv("REDIS_PASSWORD", "Pataya@77/"),
+    password=os.getenv("REDIS_PASSWORD", "clawzeneger2026prod"),
     decode_responses=True
 )
 
 voice_engine = VoicePipeline(whisper_url=WHISPER_URL, xtts_url=XTTS_URL)
-orchestrator = AgentOrchestrator(redis_url=f"redis://:{os.getenv('REDIS_PASSWORD', 'Pataya@77/')}@{REDIS_HOST}:6379/0")
+orchestrator = AgentOrchestrator(redis_url=REDIS_URL)
 # voice_manager ya está inicializado como singleton
 
 # --- FUNCIONES DE MEMORIA (CIRCULAR BUFFER) ---
@@ -261,126 +265,121 @@ async def get_cron_tasks():
 # --- WEBSOCKET DE ALTA DISPONIBILIDAD ---
 
 @app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
+async def websocket_voice_stable(websocket: WebSocket, user_id: str):
     await websocket.accept()
-    logger.info(f"🚀 Comandante {user_id} ACERTADO en el Centro de Mando.")
+    logger.info(f"✅ WebSocket conectado para socio: {user_id}")
+    
+    # Saludo inicial táctico
+    greeting = f"Hola Neil, soy tu Asistente Ejecutiva, Joanna. El búnker está operativo al 3000%. ¿Qué misión tenemos para hoy?"
+    await websocket.send_json({"type": "response", "text": greeting, "acciones": []})
     
     try:
-        # Saludo inicial PERSONALIZADO
-        greeting = f"Hola Neil, soy tu Asistente Ejecutiva, {AGENT_NAME}, ¿qué quieres que hagamos de inmediato?"
-        await websocket.send_json({
-            "type": "response",
-            "text": greeting,
-            "acciones": []
-        })
-        
-        # Buffer de Memoria persistente desde Redis
-        chat_history = await get_chat_history(user_id)
-        if not any(h["role"] == "assistant" and h["content"] == greeting for h in chat_history):
-             await save_chat_turn(user_id, "assistant", greeting)
-        
         while True:
-            data = await websocket.receive_json()
+            try:
+                # Esperar mensajes con timeout para mantener la conexión viva
+                message = await asyncio.wait_for(websocket.receive(), timeout=30.0)
+                
+                data = {}
+                audio_bytes = None
 
-            # 0. INTERCEPTOR DE AUDIO (OÍDO TÁCTICO)
-            if data.get("type") == "audio":
-                try:
-                    logger.info("🎤 Procesando señal de audio entrante...")
-                    audio_bytes = base64.b64decode(data["data"])
-                    # Guardar temporalmente para depuración si es necesario
-                    # with open("debug_audio.wav", "wb") as f: f.write(audio_bytes)
-                    
-                    transcription = await voice_engine.speech_to_text(audio_bytes)
-                    logger.info(f"🎤 Transcripción: {transcription}")
+                if message.type == WebSocket.Type.TEXT:
+                    data = json.loads(message.data)
+                    if data.get("type") == "audio":
+                        audio_bytes = base64.b64decode(data["data"])
+                    elif data.get("type") == "pong":
+                        continue # Mantener vivo
+                elif message.type == WebSocket.Type.BYTES:
+                    audio_bytes = message.data
+                    data = {"type": "audio"}
+
+                # 1. PROCESAR AUDIO (Oído Táctico Whisper)
+                if audio_bytes:
+                    await websocket.send_json({"type": "status", "text": "🎤 Transcribiendo..."})
+                    transcription = await audio_pipeline.process_audio_input(audio_bytes)
                     
                     if transcription:
-                        # Convertimos el evento en texto para que el núcleo lo procese
                         data["type"] = "text"
                         data["content"] = transcription
-                        # No enviamos eco "perico", dejamos que el LLM responda naturalmente.
-                        logger.info(f"🧠 Procesando comando de voz: {transcription}")
+                        await websocket.send_json({"type": "transcribed", "content": f"📝 Entendí: {transcription}"})
                     else:
+                        await websocket.send_json({"type": "response", "text": "No capté eso, Neil. Interferencia detectada. ¿Repites?", "acciones": []})
+                        continue
+
+                # 2. PROCESAR TEXTO (Cerebro Joanna Brain + Memoria Eterna)
+                if data.get("type") == "text":
+                    user_input = data["content"]
+                    logger.info(f"📥 Entrada táctica: {user_input}")
+                    
+                    # Recuperar Recuerdos de Largo Plazo (RAG Eterna)
+                    recuerdo = await joanna_eterna.recordar_contexto(user_id, user_input)
+                    if recuerdo:
+                        user_input = f"{user_input}\n{recuerdo}"
+                    
+                    await save_chat_turn(user_id, "user", data["content"])
+                    chat_history = await get_chat_history(user_id)
+                    
+                    # Inyectar el recuerdo en el historial para el modelo
+                    if recuerdo:
+                        chat_history[-1]["content"] = user_input
+
+                    full_text = ""
+                    try:
+                        # Obtener respuesta del pool de modelos
+                        resp = await model_pool.get_response(chat_history, user_id, stream=True)
+                        
+                        async for chunk in resp:
+                            token = chunk["choices"][0].get("delta", {}).get("content", "")
+                            if token:
+                                full_text += token
+                                await websocket.send_json({"type": "partial_response", "text": token})
+                        
+                        # Extraer acciones si existen
+                        acciones = []
+                        action_matches = re.findall(r"\[\[ACTION:\s*({.*?})\s*\]\]", full_text)
+                        for a_str in action_matches:
+                            try: acciones.append(json.loads(a_str))
+                            except: pass
+
+                        clean_text = re.sub(r"\[\[ACTION:.*?\]\]", "", full_text).strip()
+                        
+                        # Enviar respuesta final
                         await websocket.send_json({
                             "type": "response",
-                            "text": "No capté eso, Neil. ¿Podrías repetirlo por favor?",
-                            "acciones": []
+                            "text": clean_text,
+                            "acciones": acciones,
+                            "is_final": True
                         })
-                        continue
-                except Exception as e:
-                    logger.error(f"Error en oído táctico: {e}")
-                    continue
-            
-            if data["type"] == "text":
-                user_input = data["content"]
-                logger.info(f"📥 Entrada tàctica: {user_input}")
-                
-                # 1. ACTUALIZAR MEMORIA REDIS (Input)
-                await save_chat_turn(user_id, "user", user_input)
-                chat_history = await get_chat_history(user_id)
 
-                full_text = ""
-                # 1. GENERAR PENSAMIENTO (STREAMING)
-                full_text = ""
-                clean_text = ""
-                try:
-                    resp = await model_pool.get_response(chat_history, user_id, stream=True)
-                    
-                    async for chunk in resp:
-                        token = chunk["choices"][0].get("delta", {}).get("content", "")
-                        if token:
-                            full_text += token
-                            await websocket.send_json({
-                                "type": "partial_response",
-                                "text": token
-                            })
-                    
-                    # 2. ACTUALIZAR MEMORIA REDIS (Response)
-                    clean_text = re.sub(r"\[\[ACTION:.*?\]\]", "", full_text).strip()
-                    await save_chat_turn(user_id, "assistant", full_text)
-                except Exception as e:
-                    logger.error(f"🔥 FALLO CRÍTICO DE SINAPSIS: {e}")
-                    await websocket.send_json({"type": "partial_response", "text": "🛡️ Socio, perdí la conexión con el núcleo de razonamiento. Reconectando..."})
-                    clean_text = ""
+                        # Guardar respuesta final en memoria (Volátil y Eterna)
+                        await save_chat_turn(user_id, "assistant", full_text)
+                        await joanna_eterna.registrar_interaccion(user_id, data["content"], clean_text)
+                        
+                        # 3. GENERAR VOZ (Voz Táctica XTTS 10X)
+                        # No bloqueamos el socket, usamos el pipeline para generar el audio completo
+                        if clean_text:
+                            voice_bytes = await audio_pipeline.generate_audio_output(clean_text)
+                            if voice_bytes:
+                                base64_voice = base64.b64encode(voice_bytes).decode('utf-8')
+                                await websocket.send_json({"type": "audio", "data": base64_voice})
+                            
+                    except Exception as e:
+                        logger.error(f"❌ Error en cerebro/voz: {e}")
+                        await websocket.send_json({"type": "response", "text": "Hubo un fallo en mi sinapsis, socio. Dame un segundo.", "acciones": []})
 
-                # 3. ENVIAR FINAL (Asegurar que el frontend recibe el estado final)
-                if full_text:
-                    acciones = []
-                    action_matches = re.findall(r"\[\[ACTION:\s*({.*?})\s*\]\]", full_text)
-                    for a_str in action_matches:
-                        try: acciones.append(json.loads(a_str))
-                        except: pass
-
-                    await websocket.send_json({
-                        "type": "response",
-                        "text": clean_text,
-                        "acciones": acciones,
-                        "is_final": True
-                    })
-
-                # 4. GENERACIÓN DE VOZ PARALELA (3000% MODE)
-                if clean_text:
-                    asyncio.create_task(stream_voice_parallel(clean_text, websocket))
-                
-                # PERSISTIR LOG (Async)
-                r.set(f"chat:{user_id}:{datetime.now().timestamp()}", json.dumps({"u": user_input, "j": clean_text}))
-
-    except WebSocketDisconnect:
-        logger.info(f"📡 Comandante {user_id} se ha movido a una frecuencia segura.")
+            except asyncio.TimeoutError:
+                # Enviar ping para mantener la conexión
+                await websocket.send_json({"type": "ping"})
+                continue
+            except WebSocketDisconnect:
+                logger.warning(f"⚠️ Socio {user_id} desconectado.")
+                break
     except Exception as e:
-        logger.error(f"❌ WebSocket Breakdown: {e}")
-
-async def stream_voice_parallel(text: str, websocket: WebSocket):
-    """Envia audio en fragmentos usando el VoiceManager especializado"""
-    try:
-        async for audio_chunk in voice_manager.stream_tts(text):
-            if audio_chunk:
-                audio_b64 = base64.b64encode(audio_chunk).decode("utf-8")
-                await websocket.send_json({
-                    "type": "audio",
-                    "data": audio_b64
-                })
-    except Exception as e:
-        logger.error(f"Error en stream_voice_parallel: {e}")
+        logger.error(f"❌ Error crítico en WebSocket: {e}")
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass
 
 if __name__ == "__main__":
     import uvicorn
