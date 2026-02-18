@@ -8,7 +8,7 @@ import json
 import redis.asyncio as redis
 import httpx
 import os
-from litellm import completion
+from litellm import acompletion
 
 logger = logging.getLogger("JOANNA_MODEL_POOL")
 
@@ -17,7 +17,7 @@ class ModelPool:
     
     def __init__(self):
         self.redis = None
-        self.hf_proxy_url = os.getenv("HF_PROXY_URL", "http://hf-proxy:4000/v1")
+        self.ollama_url = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
         self.master_key = os.getenv("LITELLM_MASTER_KEY")
         self.default_model = "neilzeneger:latest" 
         self.loaded_models = set()
@@ -39,11 +39,11 @@ class ModelPool:
                 try:
                     logger.info(f"🧠 Calentando neuronas para: {model}")
                     # Una llamada rápida para forzar la carga en VRAM
-                    await completion(
+                    await acompletion(
                         model=f"ollama/{model}",
                         messages=[{"role": "user", "content": "ping"}],
                         max_tokens=1,
-                        api_base=self.hf_proxy_url.replace("/v1", ""),
+                        api_base=self.ollama_url,
                         api_key=self.master_key
                     )
                     self.loaded_models.add(model)
@@ -51,13 +51,13 @@ class ModelPool:
                 except Exception as e:
                     logger.warning(f"⚠️ Fallo en warmup de {model}: {e}")
 
-    async def get_response(self, messages: List[Dict], user_id: str, stream: bool = True):
+    async def get_response(self, messages: List[Dict], user_id: str, stream: bool = False):
         """Gateway unificado para el cerebro de Joanna"""
-        return await completion(
+        return await acompletion(
             model=f"ollama/{self.default_model}",
             messages=messages,
             stream=stream,
-            api_base=self.hf_proxy_url.replace("/v1", ""),
+            api_base=self.ollama_url,
             api_key=self.master_key,
             user=user_id
         )

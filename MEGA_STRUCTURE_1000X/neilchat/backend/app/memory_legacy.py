@@ -5,10 +5,22 @@ from typing import List, Dict
 
 class NeilMemory:
     def __init__(self):
-        self.client = chromadb.HttpClient(host=settings.CHROMADB_HOST, port=settings.CHROMADB_PORT)
-        self.collection = self.client.get_or_create_collection(name="neilchat_history")
+        self.client = None
+        self.collection = None
+
+    def _ensure_connected(self):
+        if not self.client:
+            try:
+                self.client = chromadb.HttpClient(host=settings.CHROMADB_HOST, port=settings.CHROMADB_PORT)
+                self.collection = self.client.get_or_create_collection(name="neilchat_history")
+            except Exception as e:
+                print(f"NeilMemory: Could not connect to ChromaDB: {e}")
+                return False
+        return True
     
     async def save_interaction(self, user_id: str, text: str, response: Dict):
+        if not self._ensure_connected():
+            return
         timestamp = datetime.now().isoformat()
         self.collection.add(
             documents=[text, response.get("mensaje", "")],
@@ -18,6 +30,8 @@ class NeilMemory:
         )
     
     async def get_recent(self, user_id: str, limit: int = 10) -> List[Dict]:
+        if not self._ensure_connected():
+            return []
         # Simplificado para prototipo
         results = self.collection.get(
             where={"user_id": user_id},

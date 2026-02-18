@@ -50,3 +50,6 @@ class AgentOrchestrator:
         
         if not tasks: return []
         return await asyncio.gather(*tasks)
+
+# Instancia unica para el bunker
+orchestrator = AgentOrchestrator()
